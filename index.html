@@ -13,7 +13,7 @@
 <body>
   <div class="ticker">
     <div class="ticker-inner">
-      ⚡ ATTANDIE &bull; AUTO-TIMETABLE SYNC &bull; 75% TARGET PROTECTOR &bull; NO ANXIETY MATH &bull; ⚡ ATTANDIE &bull; AUTO-TIMETABLE SYNC &bull; 75% TARGET PROTECTOR
+      ⚡ ATTANDIE &bull; AUTO-TIMETABLE SYNC &bull; SMART ROUTINE TRACKER &bull; NO ANXIETY MATH &bull; ⚡ ATTANDIE &bull; AUTO-TIMETABLE SYNC &bull; SMART ROUTINE TRACKER
     </div>
   </div>
 
@@ -27,7 +27,8 @@
         </div>
       </div>
       <div class="badges">
-        <span class="tag tag-yellow" id="current-day-badge">MONDAY</span>
+        <span class="tag tag-yellow" id="current-day-badge">TODAY</span>
+        <span class="tag tag-cyan" id="live-time-badge">🕒 Loading...</span>
         <span class="tag tag-green">AUTO-SAVED</span>
       </div>
     </header>
@@ -72,11 +73,11 @@
                 <div class="form-group">
                   <div class="label-row">
                     <label for="attended">Attended</label>
-                    <span class="mini-tag" id="hint-attended-pct">87.5%</span>
+                    <span class="mini-tag" id="hint-attended-pct">0%</span>
                   </div>
                   <div class="stepper">
                     <button type="button" id="btn-attended-minus">-</button>
-                    <input type="number" id="attended" min="0" value="28">
+                    <input type="number" id="attended" min="0" value="0">
                     <button type="button" id="btn-attended-plus">+</button>
                   </div>
                 </div>
@@ -84,11 +85,11 @@
                 <div class="form-group">
                   <div class="label-row">
                     <label for="total">Total Held</label>
-                    <span class="mini-tag tag-pink" id="hint-missed">Missed: 4</span>
+                    <span class="mini-tag tag-pink" id="hint-missed">Missed: 0</span>
                   </div>
                   <div class="stepper">
                     <button type="button" id="btn-total-minus">-</button>
-                    <input type="number" id="total" min="0" value="32">
+                    <input type="number" id="total" min="0" value="0">
                     <button type="button" id="btn-total-plus">+</button>
                   </div>
                 </div>
@@ -129,32 +130,32 @@
           <div class="card verdict-card" id="result-card">
             <div class="card-header">
               <h2>The Verdict</h2>
-              <span class="status-tag" id="verdict-tag">SAFE ZONE</span>
+              <span class="status-tag" id="verdict-tag">NO CLASSES</span>
             </div>
 
-            <div class="verdict-banner" id="verdict-banner">
-              <span class="verdict-icon" id="verdict-icon">😎</span>
+            <div class="verdict-banner state-edge" id="verdict-banner">
+              <span class="verdict-icon" id="verdict-icon">🚀</span>
               <div>
-                <p class="verdict-subtitle" id="verdict-subtitle">YOU ARE IN THE CLEAR!</p>
-                <h3 class="verdict-title" id="verdict-title">Can skip <span class="highlight" id="verdict-number">5</span> classes</h3>
-                <p class="verdict-desc" id="verdict-text">You can safely miss the next 5 classes and still maintain at least 75% attendance.</p>
+                <p class="verdict-subtitle" id="verdict-subtitle">SEMESTER START</p>
+                <h3 class="verdict-title" id="verdict-title">No classes held yet</h3>
+                <p class="verdict-desc" id="verdict-text">Attend upcoming classes to build your attendance buffer.</p>
               </div>
             </div>
 
             <div class="gauge-box">
               <div class="gauge-info">
                 <span>Current Standing</span>
-                <strong id="pct-display">87.5%</strong>
+                <strong id="pct-display">0.0%</strong>
               </div>
               <div class="progress-track">
                 <div class="target-pin" id="target-line" style="left: 75%;">
                   <span class="target-badge">75%</span>
                 </div>
-                <div class="progress-bar" id="progress-bar" style="width: 87.5%;"></div>
+                <div class="progress-bar" id="progress-bar" style="width: 0%; background: var(--yellow);"></div>
               </div>
               <div class="gauge-footer">
                 <span>0%</span>
-                <span id="margin-text">Safe by +12.5%</span>
+                <span id="margin-text">0 classes</span>
                 <span>100%</span>
               </div>
             </div>
@@ -162,15 +163,15 @@
             <div class="stats-row">
               <div class="stat-box">
                 <span>Attended</span>
-                <strong id="stat-attended">28</strong>
+                <strong id="stat-attended">0</strong>
               </div>
               <div class="stat-box">
                 <span>Held</span>
-                <strong id="stat-held">32</strong>
+                <strong id="stat-held">0</strong>
               </div>
               <div class="stat-box">
                 <span>Missed</span>
-                <strong class="color-pink" id="stat-missed">4</strong>
+                <strong class="color-pink" id="stat-missed">0</strong>
               </div>
               <div class="stat-box">
                 <span>Target</span>
@@ -226,10 +227,9 @@
         <div class="card empty-state" id="empty-state" style="display: none;">
           <p class="empty-icon">📂</p>
           <h3>No subjects added yet!</h3>
-          <p class="desc">Add your semester subjects or load demo data to start tracking.</p>
+          <p class="desc">Add your semester subjects to start tracking your attendance.</p>
           <div class="btn-group mt-2">
             <button type="button" class="btn btn-yellow" id="btn-empty-add">+ Add Subject</button>
-            <button type="button" class="btn btn-secondary" id="btn-demo">✨ Load Demo</button>
           </div>
         </div>
       </section>
@@ -285,11 +285,11 @@
         <div class="form-row">
           <div class="form-group">
             <label for="modal-attended">Attended *</label>
-            <input type="number" id="modal-attended" min="0" required value="20">
+            <input type="number" id="modal-attended" min="0" required value="0">
           </div>
           <div class="form-group">
             <label for="modal-held">Total Held *</label>
-            <input type="number" id="modal-held" min="0" required value="25">
+            <input type="number" id="modal-held" min="0" required value="0">
           </div>
         </div>
         <div class="form-group">
@@ -321,6 +321,7 @@
             <option value="Thursday">Thursday</option>
             <option value="Friday">Friday</option>
             <option value="Saturday">Saturday</option>
+            <option value="Sunday">Sunday</option>
           </select>
         </div>
         <div class="form-group">

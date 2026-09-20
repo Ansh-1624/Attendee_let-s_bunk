@@ -6,32 +6,11 @@ const TIMETABLE_KEY = 'attandie_timetable';
 const LOGS_KEY = 'attandie_daily_logs';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-const DEMO_SUBJECTS = [
-  { id: '1', name: 'Data Structures & Algorithms', attended: 26, held: 28, target: 75 },
-  { id: '2', name: 'Computer Systems & OS', attended: 18, held: 24, target: 75 },
-  { id: '3', name: 'Database Management', attended: 21, held: 30, target: 75 },
-  { id: '4', name: 'Linear Algebra', attended: 22, held: 25, target: 80 }
-];
+const DEMO_SUBJECTS = [];
 
-const DEMO_TIMETABLE = [
-  { id: 't1', day: 'Monday', subject: 'Data Structures & Algorithms', time: '09:30 AM', room: 'Lab 1' },
-  { id: 't2', day: 'Monday', subject: 'Computer Systems & OS', time: '11:30 AM', room: 'Hall 2' },
-  { id: 't3', day: 'Monday', subject: 'Database Management', time: '02:00 PM', room: 'Room 304' },
-  { id: 't4', day: 'Tuesday', subject: 'Linear Algebra', time: '09:30 AM', room: 'Hall 1' },
-  { id: 't5', day: 'Tuesday', subject: 'Data Structures & Algorithms', time: '11:30 AM', room: 'Lab 1' },
-  { id: 't6', day: 'Tuesday', subject: 'Computer Systems & OS', time: '02:00 PM', room: 'Room 201' },
-  { id: 't7', day: 'Wednesday', subject: 'Database Management', time: '09:30 AM', room: 'Room 304' },
-  { id: 't8', day: 'Wednesday', subject: 'Linear Algebra', time: '11:30 AM', room: 'Hall 1' },
-  { id: 't9', day: 'Wednesday', subject: 'Computer Systems & OS', time: '02:00 PM', room: 'Lab 2' },
-  { id: 't10', day: 'Thursday', subject: 'Data Structures & Algorithms', time: '09:30 AM', room: 'Lab 1' },
-  { id: 't11', day: 'Thursday', subject: 'Linear Algebra', time: '11:30 AM', room: 'Hall 1' },
-  { id: 't12', day: 'Thursday', subject: 'Database Management', time: '02:00 PM', room: 'Room 304' },
-  { id: 't13', day: 'Friday', subject: 'Computer Systems & OS', time: '09:30 AM', room: 'Hall 2' },
-  { id: 't14', day: 'Friday', subject: 'Data Structures & Algorithms', time: '11:30 AM', room: 'Lab 1' },
-  { id: 't15', day: 'Friday', subject: 'Database Management', time: '02:00 PM', room: 'Room 304' },
-  { id: 't16', day: 'Saturday', subject: 'Linear Algebra', time: '10:00 AM', room: 'Tutorial Room' }
-];
+const DEMO_TIMETABLE = [];
 
 // Core DOM Elements
 const attendedInput = document.getElementById('attended');
@@ -63,17 +42,49 @@ const hintMissed = document.getElementById('hint-missed');
 let subjects = [];
 let timetable = [];
 let dailyLogs = {};
+let lastRenderedDateKey = '';
 
-// Helpers
+// Real Date & Time Helpers
 const getTodayName = () => {
-  const day = DAYS[new Date().getDay()];
-  return day === 'Sunday' ? 'Monday' : day;
+  return DAYS[new Date().getDay()];
 };
 
 const getTodayDateKey = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
+
+function updateLiveDateTime() {
+  const now = new Date();
+  const dayName = DAYS[now.getDay()];
+  const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  const currentDayBadge = document.getElementById('current-day-badge');
+  if (currentDayBadge) {
+    currentDayBadge.textContent = dayName.toUpperCase();
+  }
+
+  const liveBadge = document.getElementById('live-time-badge');
+  if (liveBadge) {
+    const formattedDate = now.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
+    const formattedTime = now.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+    liveBadge.textContent = `🕒 ${formattedDate} • ${formattedTime}`;
+  }
+
+  if (lastRenderedDateKey && lastRenderedDateKey !== dateKey) {
+    lastRenderedDateKey = dateKey;
+    renderTodaySchedule();
+    renderTimetable();
+  }
+}
 
 // Math Calculation Engine
 function calculate(attended, held, target) {
@@ -106,7 +117,7 @@ function calculate(attended, held, target) {
 function updateUI() {
   const res = calculate(attendedInput.value, totalInput.value, targetSlider.value);
 
-  hintAttended.textContent = `${res.pctFormatted}%`;
+  hintAttended.textContent = res.held === 0 ? '0%' : `${res.pctFormatted}%`;
   hintMissed.textContent = `Missed: ${res.missed}`;
   targetDisplay.textContent = `${res.target}%`;
 
@@ -115,23 +126,27 @@ function updateUI() {
   statMissed.textContent = res.missed;
   statTarget.textContent = `${res.target}%`;
 
-  pctDisplay.textContent = `${res.pctFormatted}%`;
-  progressBar.style.width = `${Math.min(100, Math.max(0, res.pct))}%`;
   targetLine.style.left = `${res.target}%`;
   targetLine.querySelector('.target-badge').textContent = `${res.target}%`;
 
   const subject = subjectNameInput.value.trim() ? `in ${subjectNameInput.value.trim()}` : '';
 
   if (res.held === 0) {
+    pctDisplay.textContent = '0.0%';
+    progressBar.style.width = '0%';
+    progressBar.style.background = 'var(--yellow)';
+    marginText.textContent = '0 classes';
+    marginText.style.color = '#555';
+
     verdictBanner.className = 'verdict-banner state-edge';
     verdictTag.textContent = 'NO CLASSES';
     verdictIcon.textContent = '🚀';
     verdictSubtitle.textContent = 'SEMESTER START';
     verdictTitle.innerHTML = `No classes held yet ${subject}`;
     verdictText.textContent = 'Attend upcoming classes to build your attendance buffer.';
-    progressBar.style.background = 'var(--yellow)';
-    marginText.textContent = '0 classes';
   } else if (res.isSafe) {
+    pctDisplay.textContent = `${res.pctFormatted}%`;
+    progressBar.style.width = `${Math.min(100, Math.max(0, res.pct))}%`;
     progressBar.style.background = 'var(--green)';
     marginText.textContent = `Safe by +${res.diff}%`;
     marginText.style.color = '#059669';
@@ -149,9 +164,11 @@ function updateUI() {
       verdictIcon.textContent = '😎';
       verdictSubtitle.textContent = 'YOU ARE IN THE CLEAR!';
       verdictTitle.innerHTML = `Can skip <span class="highlight">${res.skippable}</span> class${res.skippable > 1 ? 'es' : ''} ${subject}`;
-      verdictText.textContent = `You can safely miss ${res.skippable} consecutive class(es) and remain $\\ge ${res.target}%$.`;
+      verdictText.textContent = `You can safely miss ${res.skippable} consecutive class(es) and remain >= ${res.target}%.`;
     }
   } else {
+    pctDisplay.textContent = `${res.pctFormatted}%`;
+    progressBar.style.width = `${Math.min(100, Math.max(0, res.pct))}%`;
     progressBar.style.background = 'var(--pink)';
     marginText.textContent = `Deficit by -${res.diff}%`;
     marginText.style.color = '#dc2626';
@@ -174,15 +191,28 @@ function updateUI() {
 
 function loadSingle() {
   try {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (data) {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
       subjectNameInput.value = data.subject || '';
-      attendedInput.value = data.attended || 28;
-      totalInput.value = data.held || 32;
+      attendedInput.value = data.attended !== undefined && data.attended !== null ? data.attended : 0;
+      totalInput.value = data.held !== undefined && data.held !== null ? data.held : 0;
       targetSlider.value = data.target || 75;
       setPill(data.target || 75);
+    } else {
+      subjectNameInput.value = '';
+      attendedInput.value = 0;
+      totalInput.value = 0;
+      targetSlider.value = 75;
+      setPill(75);
     }
-  } catch (e) {}
+  } catch (e) {
+    subjectNameInput.value = '';
+    attendedInput.value = 0;
+    totalInput.value = 0;
+    targetSlider.value = 75;
+    setPill(75);
+  }
   updateUI();
 }
 
@@ -195,9 +225,10 @@ function saveSubjects() {
 
 function loadSubjects() {
   try {
-    subjects = JSON.parse(localStorage.getItem(MULTI_KEY)) || DEMO_SUBJECTS;
+    const raw = localStorage.getItem(MULTI_KEY);
+    subjects = raw ? JSON.parse(raw) : [];
   } catch (e) {
-    subjects = DEMO_SUBJECTS;
+    subjects = [];
   }
   renderSubjects();
 }
@@ -211,10 +242,11 @@ function saveTimetable() {
 
 function loadTimetable() {
   try {
-    timetable = JSON.parse(localStorage.getItem(TIMETABLE_KEY)) || DEMO_TIMETABLE;
+    const raw = localStorage.getItem(TIMETABLE_KEY);
+    timetable = raw ? JSON.parse(raw) : [];
     dailyLogs = JSON.parse(localStorage.getItem(LOGS_KEY)) || {};
   } catch (e) {
-    timetable = DEMO_TIMETABLE;
+    timetable = [];
     dailyLogs = {};
   }
   renderTimetable();
@@ -248,12 +280,24 @@ function renderTodaySchedule() {
   const container = document.getElementById('today-slots-container');
   const today = getTodayName();
   const dateKey = getTodayDateKey();
+  lastRenderedDateKey = dateKey;
 
-  document.getElementById('current-day-badge').textContent = today.toUpperCase();
-  document.getElementById('today-card-title').textContent = `📅 Today's Classes (${today})`;
+  const now = new Date();
+  const formattedTodayDate = now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric'
+  });
+
+  const dayBadge = document.getElementById('current-day-badge');
+  if (dayBadge) dayBadge.textContent = today.toUpperCase();
+
+  const titleEl = document.getElementById('today-card-title');
+  if (titleEl) titleEl.textContent = `📅 Today's Schedule (${formattedTodayDate})`;
 
   const todaySlots = timetable.filter(t => t.day.toLowerCase() === today.toLowerCase());
-  document.getElementById('today-class-count').textContent = todaySlots.length;
+  const countBadge = document.getElementById('today-class-count');
+  if (countBadge) countBadge.textContent = todaySlots.length;
 
   if (todaySlots.length === 0) {
     container.innerHTML = `<div class="slot-empty" style="grid-column: 1 / -1;">🎉 No classes scheduled for today (${today})!</div>`;
@@ -338,7 +382,7 @@ function renderTimetable() {
   if (!container) return;
   const todayName = getTodayName();
 
-  container.innerHTML = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => {
+  container.innerHTML = WEEKDAYS.map(day => {
     const slots = timetable.filter(t => t.day.toLowerCase() === day.toLowerCase());
     const isToday = day.toLowerCase() === todayName.toLowerCase();
 
@@ -478,11 +522,13 @@ function updateAggregates() {
   subjects.forEach(s => {
     att += (s.attended || 0);
     held += (s.held || 0);
-    if (calculate(s.attended, s.held, s.target).isSafe) safe++;
-    else risk++;
+    if ((s.held || 0) > 0) {
+      if (calculate(s.attended, s.held, s.target).isSafe) safe++;
+      else risk++;
+    }
   });
 
-  const overall = held === 0 ? 100 : (att / held) * 100;
+  const overall = held === 0 ? 0 : (att / held) * 100;
   document.getElementById('agg-pct').textContent = `${overall.toFixed(1)}%`;
   document.getElementById('agg-safe').textContent = safe;
   document.getElementById('agg-risk').textContent = risk;
@@ -725,12 +771,12 @@ function init() {
   // Reset
   document.getElementById('btn-reset').addEventListener('click', () => {
     subjectNameInput.value = '';
-    attendedInput.value = 28;
-    totalInput.value = 32;
+    attendedInput.value = 0;
+    totalInput.value = 0;
     targetSlider.value = 75;
     setPill(75);
     updateUI();
-    showToast('↺ Reset to defaults');
+    showToast('↺ Reset to 0');
   });
 
   // Save to Subjects
@@ -766,12 +812,6 @@ function init() {
   });
 
   document.getElementById('btn-empty-add').addEventListener('click', () => document.getElementById('btn-add-subject').click());
-
-  document.getElementById('btn-demo').addEventListener('click', () => {
-    subjects = JSON.parse(JSON.stringify(DEMO_SUBJECTS));
-    saveSubjects();
-    showToast('✨ Loaded Demo Subjects', 'success');
-  });
 
   document.getElementById('modal-close').addEventListener('click', () => document.getElementById('modal-subject').close());
   document.getElementById('modal-cancel').addEventListener('click', () => document.getElementById('modal-subject').close());
@@ -844,6 +884,8 @@ function init() {
   });
 
   // Boot
+  updateLiveDateTime();
+  setInterval(updateLiveDateTime, 1000);
   loadSingle();
   loadSubjects();
   loadTimetable();

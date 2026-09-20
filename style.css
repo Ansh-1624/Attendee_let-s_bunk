@@ -122,6 +122,7 @@ body {
 .tag-yellow { background: var(--yellow); }
 .tag-green { background: var(--green); }
 .tag-pink { background: var(--pink-lt); }
+.tag-cyan { background: var(--cyan); }
 
 /* TABS */
 .tabs {
