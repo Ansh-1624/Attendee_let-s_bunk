@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attandie ⚡ — Attendance & Timetable</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Space+Mono:wght@700&family=Syne:wght@800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="ticker">
+    <div class="ticker-inner">
+      ⚡ ATTANDIE &bull; AUTO-TIMETABLE SYNC &bull; 75% TARGET PROTECTOR &bull; NO ANXIETY MATH &bull; ⚡ ATTANDIE &bull; AUTO-TIMETABLE SYNC &bull; 75% TARGET PROTECTOR
+    </div>
+  </div>
+
+  <div class="app">
+    <header class="top-nav">
+      <div class="logo">
+        <span class="logo-badge">⚡</span>
+        <div>
+          <h1>ATTANDIE</h1>
+          <p>Attendance &amp; Weekly Routine</p>
+        </div>
+      </div>
+      <div class="badges">
+        <span class="tag tag-yellow" id="current-day-badge">MONDAY</span>
+        <span class="tag tag-green">AUTO-SAVED</span>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="calculator">⚡ Quick Calculator</button>
+      <button class="tab-btn" data-tab="timetable">📅 Timetable <span class="counter" id="today-class-count">0</span></button>
+      <button class="tab-btn" data-tab="multi">📚 Subjects <span class="counter" id="subject-count">0</span></button>
+      <button class="tab-btn" data-tab="simulator">🔮 Simulator</button>
+    </nav>
+
+    <main>
+      <!-- TAB 1: QUICK CALCULATOR + TODAY'S SCHEDULE -->
+      <section class="tab-pane active" id="pane-calculator">
+        <!-- TODAY'S SCHEDULE -->
+        <div class="card mb-4" id="today-box">
+          <div class="card-header">
+            <div>
+              <h2 id="today-card-title">📅 Today's Classes</h2>
+              <p class="desc">Mark attendance to sync automatically with your running semester standing.</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-yellow" id="btn-mark-all-today">⚡ Mark All Present</button>
+          </div>
+          <div class="today-grid" id="today-slots-container"></div>
+        </div>
+
+        <div class="grid-2col">
+          <!-- FORM -->
+          <div class="card">
+            <div class="card-header">
+              <h2>Class Details</h2>
+              <span class="step-badge">STEP 1</span>
+            </div>
+
+            <form id="calc-form" onsubmit="return false;">
+              <div class="form-group">
+                <label for="subject-name">Subject Name (Optional)</label>
+                <input type="text" id="subject-name" placeholder="e.g. Data Structures, Physics">
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <div class="label-row">
+                    <label for="attended">Attended</label>
+                    <span class="mini-tag" id="hint-attended-pct">87.5%</span>
+                  </div>
+                  <div class="stepper">
+                    <button type="button" id="btn-attended-minus">-</button>
+                    <input type="number" id="attended" min="0" value="28">
+                    <button type="button" id="btn-attended-plus">+</button>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <div class="label-row">
+                    <label for="total">Total Held</label>
+                    <span class="mini-tag tag-pink" id="hint-missed">Missed: 4</span>
+                  </div>
+                  <div class="stepper">
+                    <button type="button" id="btn-total-minus">-</button>
+                    <input type="number" id="total" min="0" value="32">
+                    <button type="button" id="btn-total-plus">+</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="quick-log">
+                <span class="quick-log-title">Quick Log (Current Subject):</span>
+                <div class="btn-group">
+                  <button type="button" class="btn btn-green btn-sm" id="btn-log-present">+1 Present</button>
+                  <button type="button" class="btn btn-pink btn-sm" id="btn-log-absent">+1 Absent</button>
+                </div>
+              </div>
+
+              <div class="form-group target-box">
+                <div class="label-row">
+                  <label for="target-slider">Target Attendance</label>
+                  <span class="target-val" id="target-display">75%</span>
+                </div>
+
+                <div class="pills">
+                  <button type="button" class="pill" data-val="65">65%</button>
+                  <button type="button" class="pill active" data-val="75">75%</button>
+                  <button type="button" class="pill" data-val="80">80%</button>
+                  <button type="button" class="pill" data-val="85">85%</button>
+                  <button type="button" class="pill" data-val="90">90%</button>
+                </div>
+                <input type="range" id="target-slider" min="50" max="95" value="75">
+              </div>
+
+              <div class="btn-group mt-2">
+                <button type="button" class="btn btn-secondary" id="btn-save-subject">💾 Save to Subjects</button>
+                <button type="button" class="btn btn-ghost" id="btn-reset">↺ Reset</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- VERDICT HERO CARD -->
+          <div class="card verdict-card" id="result-card">
+            <div class="card-header">
+              <h2>The Verdict</h2>
+              <span class="status-tag" id="verdict-tag">SAFE ZONE</span>
+            </div>
+
+            <div class="verdict-banner" id="verdict-banner">
+              <span class="verdict-icon" id="verdict-icon">😎</span>
+              <div>
+                <p class="verdict-subtitle" id="verdict-subtitle">YOU ARE IN THE CLEAR!</p>
+                <h3 class="verdict-title" id="verdict-title">Can skip <span class="highlight" id="verdict-number">5</span> classes</h3>
+                <p class="verdict-desc" id="verdict-text">You can safely miss the next 5 classes and still maintain at least 75% attendance.</p>
+              </div>
+            </div>
+
+            <div class="gauge-box">
+              <div class="gauge-info">
+                <span>Current Standing</span>
+                <strong id="pct-display">87.5%</strong>
+              </div>
+              <div class="progress-track">
+                <div class="target-pin" id="target-line" style="left: 75%;">
+                  <span class="target-badge">75%</span>
+                </div>
+                <div class="progress-bar" id="progress-bar" style="width: 87.5%;"></div>
+              </div>
+              <div class="gauge-footer">
+                <span>0%</span>
+                <span id="margin-text">Safe by +12.5%</span>
+                <span>100%</span>
+              </div>
+            </div>
+
+            <div class="stats-row">
+              <div class="stat-box">
+                <span>Attended</span>
+                <strong id="stat-attended">28</strong>
+              </div>
+              <div class="stat-box">
+                <span>Held</span>
+                <strong id="stat-held">32</strong>
+              </div>
+              <div class="stat-box">
+                <span>Missed</span>
+                <strong class="color-pink" id="stat-missed">4</strong>
+              </div>
+              <div class="stat-box">
+                <span>Target</span>
+                <strong class="color-yellow" id="stat-target">75%</strong>
+              </div>
+            </div>
+
+            <div class="btn-group mt-2">
+              <button type="button" class="btn btn-yellow" id="btn-copy">📋 Copy Summary</button>
+              <button type="button" class="btn btn-green" id="btn-share">💬 WhatsApp</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: WEEKLY TIMETABLE -->
+      <section class="tab-pane" id="pane-timetable">
+        <div class="days-grid" id="timetable-container"></div>
+      </section>
+
+      <!-- TAB 3: ALL SUBJECTS -->
+      <section class="tab-pane" id="pane-multi">
+        <div class="card mb-4">
+          <div class="card-header">
+            <div>
+              <h2>Semester &amp; Quarterly Standing</h2>
+              <p class="desc">Cumulative running attendance maintained automatically from your routine.</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="btn-add-subject">+ Add Subject</button>
+          </div>
+          <div class="stats-row agg-row">
+            <div class="stat-box">
+              <span>Overall %</span>
+              <strong id="agg-pct">0.0%</strong>
+            </div>
+            <div class="stat-box bg-green">
+              <span>Safe Courses</span>
+              <strong id="agg-safe">0</strong>
+            </div>
+            <div class="stat-box bg-pink">
+              <span>At Risk</span>
+              <strong id="agg-risk">0</strong>
+            </div>
+            <div class="stat-box bg-yellow">
+              <span>Total Classes</span>
+              <strong id="agg-total">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="subjects-grid" id="subjects-container"></div>
+
+        <div class="card empty-state" id="empty-state" style="display: none;">
+          <p class="empty-icon">📂</p>
+          <h3>No subjects added yet!</h3>
+          <p class="desc">Add your semester subjects or load demo data to start tracking.</p>
+          <div class="btn-group mt-2">
+            <button type="button" class="btn btn-yellow" id="btn-empty-add">+ Add Subject</button>
+            <button type="button" class="btn btn-secondary" id="btn-demo">✨ Load Demo</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: SIMULATOR -->
+      <section class="tab-pane" id="pane-simulator">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>Future Simulator</h2>
+              <p class="desc">Forecast attendance across the next 10 classes (Attending all vs Bunking all).</p>
+            </div>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-sim-sync">🔄 Sync</button>
+          </div>
+          <div class="table-wrap">
+            <table class="neo-table">
+              <thead>
+                <tr>
+                  <th>Upcoming</th>
+                  <th>If You ATTEND All (+)</th>
+                  <th>If You BUNK All (-)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="sim-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div><strong>ATTANDIE ⚡</strong> &bull; Attendance Calculator</div>
+      <div>
+        <button type="button" class="btn btn-sm btn-pink" id="btn-clear">🗑️ Reset All Data</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- MODALS -->
+  <dialog id="modal-subject">
+    <div class="modal-card card">
+      <div class="card-header">
+        <h3 id="modal-title">Add Subject</h3>
+        <button type="button" class="close-btn" id="modal-close">&times;</button>
+      </div>
+      <form id="modal-form">
+        <input type="hidden" id="modal-id">
+        <div class="form-group">
+          <label for="modal-name">Subject Name *</label>
+          <input type="text" id="modal-name" required placeholder="e.g. Operating Systems">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="modal-attended">Attended *</label>
+            <input type="number" id="modal-attended" min="0" required value="20">
+          </div>
+          <div class="form-group">
+            <label for="modal-held">Total Held *</label>
+            <input type="number" id="modal-held" min="0" required value="25">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="modal-target">Target % *</label>
+          <input type="number" id="modal-target" min="1" max="99" required value="75">
+        </div>
+        <div class="btn-group mt-2">
+          <button type="button" class="btn btn-secondary" id="modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Subject</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="modal-slot">
+    <div class="modal-card card">
+      <div class="card-header">
+        <h3 id="modal-slot-title">Add Class Slot</h3>
+        <button type="button" class="close-btn" id="modal-slot-close">&times;</button>
+      </div>
+      <form id="modal-slot-form">
+        <input type="hidden" id="modal-slot-id">
+        <div class="form-group">
+          <label for="slot-day">Day *</label>
+          <select id="slot-day" class="neo-input" required>
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="slot-subject">Subject *</label>
+          <input type="text" id="slot-subject" required placeholder="e.g. Data Structures" list="subject-suggestions">
+          <datalist id="subject-suggestions"></datalist>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="slot-time">Time</label>
+            <input type="text" id="slot-time" placeholder="09:30 AM">
+          </div>
+          <div class="form-group">
+            <label for="slot-room">Room (Optional)</label>
+            <input type="text" id="slot-room" placeholder="Lab 1">
+          </div>
+        </div>
+        <div class="btn-group mt-2">
+          <button type="button" class="btn btn-secondary" id="modal-slot-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Slot</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <div id="toasts" class="toast-container"></div>
+  <canvas id="confetti" class="confetti-canvas"></canvas>
+
+  <script src="app.js"></script>
+</body>
+</html>
