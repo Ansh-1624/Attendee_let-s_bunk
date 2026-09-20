@@ -65,8 +65,11 @@
 
             <form id="calc-form" onsubmit="return false;">
               <div class="form-group">
-                <label for="subject-name">Subject Name (Optional)</label>
-                <input type="text" id="subject-name" placeholder="e.g. Data Structures, Physics">
+                <div class="label-row">
+                  <label for="subject-name">Subject Name (Optional)</label>
+                  <span class="mini-tag tag-green" id="subject-sync-badge" style="display:none; transition: all 0.2s;">⚡ Live Sync</span>
+                </div>
+                <input type="text" id="subject-name" list="subject-suggestions" placeholder="e.g. ICP, Data Structures, Physics" autocomplete="off">
               </div>
 
               <div class="form-row">

@@ -1,267 +1,161 @@
-// Attandie — Attendance & Weekly Routine Calculator
+// Attandie — Attendance & Weekly Routine Tracker
+const $ = id => document.getElementById(id);
+const $$ = s => document.querySelectorAll(s);
 
-const STORAGE_KEY = 'attandie_state';
-const MULTI_KEY = 'attandie_subjects';
-const TIMETABLE_KEY = 'attandie_timetable';
-const LOGS_KEY = 'attandie_daily_logs';
-
+const store = (k, v) => v !== undefined ? localStorage.setItem(k, JSON.stringify(v)) : JSON.parse(localStorage.getItem(k) || 'null');
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-const DEMO_SUBJECTS = [];
+let subjects = store('attandie_subjects') || [];
+let timetable = store('attandie_timetable') || [];
+let dailyLogs = store('attandie_daily_logs') || {};
+let curSyncedId = null;
 
-const DEMO_TIMETABLE = [];
+const getToday = () => DAYS[new Date().getDay()];
+const getDateKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-// Core DOM Elements
-const attendedInput = document.getElementById('attended');
-const totalInput = document.getElementById('total');
-const subjectNameInput = document.getElementById('subject-name');
-const targetSlider = document.getElementById('target-slider');
-const targetDisplay = document.getElementById('target-display');
-const pills = document.querySelectorAll('.pills .pill');
-
-const verdictBanner = document.getElementById('verdict-banner');
-const verdictTag = document.getElementById('verdict-tag');
-const verdictIcon = document.getElementById('verdict-icon');
-const verdictSubtitle = document.getElementById('verdict-subtitle');
-const verdictTitle = document.getElementById('verdict-title');
-const verdictText = document.getElementById('verdict-text');
-const pctDisplay = document.getElementById('pct-display');
-const progressBar = document.getElementById('progress-bar');
-const targetLine = document.getElementById('target-line');
-const marginText = document.getElementById('margin-text');
-
-const statAttended = document.getElementById('stat-attended');
-const statHeld = document.getElementById('stat-held');
-const statMissed = document.getElementById('stat-missed');
-const statTarget = document.getElementById('stat-target');
-
-const hintAttended = document.getElementById('hint-attended-pct');
-const hintMissed = document.getElementById('hint-missed');
-
-let subjects = [];
-let timetable = [];
-let dailyLogs = {};
-let lastRenderedDateKey = '';
-
-// Real Date & Time Helpers
-const getTodayName = () => {
-  return DAYS[new Date().getDay()];
-};
-
-const getTodayDateKey = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
-function updateLiveDateTime() {
-  const now = new Date();
-  const dayName = DAYS[now.getDay()];
-  const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-  const currentDayBadge = document.getElementById('current-day-badge');
-  if (currentDayBadge) {
-    currentDayBadge.textContent = dayName.toUpperCase();
-  }
-
-  const liveBadge = document.getElementById('live-time-badge');
-  if (liveBadge) {
-    const formattedDate = now.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    });
-    const formattedTime = now.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
-    liveBadge.textContent = `🕒 ${formattedDate} • ${formattedTime}`;
-  }
-
-  if (lastRenderedDateKey && lastRenderedDateKey !== dateKey) {
-    lastRenderedDateKey = dateKey;
-    renderTodaySchedule();
-    renderTimetable();
-  }
-}
-
-// Math Calculation Engine
-function calculate(attended, held, target) {
-  attended = Math.max(0, parseInt(attended, 10) || 0);
-  held = Math.max(0, parseInt(held, 10) || 0);
+// Attendance Math Engine
+function calc(att, held, target) {
+  att = Math.max(0, parseInt(att, 10) || 0);
+  held = Math.max(att, parseInt(held, 10) || 0);
   target = Math.max(1, Math.min(99, parseFloat(target) || 75));
-
-  if (attended > held) held = attended;
-
-  const missed = held - attended;
-  const pct = held === 0 ? 100 : (attended / held) * 100;
+  const missed = held - att;
+  const pct = held ? (att / held) * 100 : 100;
   const isSafe = pct >= target;
   const diff = Math.abs(pct - target).toFixed(1);
-
-  let skippable = 0;
-  let recover = 0;
-
-  if (held > 0) {
-    if (isSafe) {
-      skippable = Math.max(0, Math.floor((100 * attended - target * held) / target));
-    } else {
-      recover = Math.max(0, Math.ceil((target * held - 100 * attended) / (100 - target)));
-    }
-  }
-
-  return { attended, held, missed, target, pct, pctFormatted: pct.toFixed(1), isSafe, diff, skippable, recover };
+  const skippable = held && isSafe ? Math.max(0, Math.floor((100 * att - target * held) / target)) : 0;
+  const recover = held && !isSafe ? Math.max(0, Math.ceil((target * held - 100 * att) / (100 - target))) : 0;
+  return { att, held, missed, target, pct, pctFmt: pct.toFixed(1), isSafe, diff, skippable, recover };
 }
 
-// Single Calculator UI
+// Quick Calculator UI & Sync
 function updateUI() {
-  const res = calculate(attendedInput.value, totalInput.value, targetSlider.value);
+  const res = calc($('attended').value, $('total').value, $('target-slider').value);
+  $('hint-attended-pct').textContent = res.held ? `${res.pctFmt}%` : '0%';
+  $('hint-missed').textContent = `Missed: ${res.missed}`;
+  $('target-display').textContent = `${res.target}%`;
+  $('stat-attended').textContent = res.att;
+  $('stat-held').textContent = res.held;
+  $('stat-missed').textContent = res.missed;
+  $('stat-target').textContent = `${res.target}%`;
 
-  hintAttended.textContent = res.held === 0 ? '0%' : `${res.pctFormatted}%`;
-  hintMissed.textContent = `Missed: ${res.missed}`;
-  targetDisplay.textContent = `${res.target}%`;
+  $('target-line').style.left = `${res.target}%`;
+  $('target-line').querySelector('.target-badge').textContent = `${res.target}%`;
+  const subName = $('subject-name').value.trim();
+  const subText = subName ? `in ${subName}` : '';
 
-  statAttended.textContent = res.attended;
-  statHeld.textContent = res.held;
-  statMissed.textContent = res.missed;
-  statTarget.textContent = `${res.target}%`;
-
-  targetLine.style.left = `${res.target}%`;
-  targetLine.querySelector('.target-badge').textContent = `${res.target}%`;
-
-  const subject = subjectNameInput.value.trim() ? `in ${subjectNameInput.value.trim()}` : '';
-
-  if (res.held === 0) {
-    pctDisplay.textContent = '0.0%';
-    progressBar.style.width = '0%';
-    progressBar.style.background = 'var(--yellow)';
-    marginText.textContent = '0 classes';
-    marginText.style.color = '#555';
-
-    verdictBanner.className = 'verdict-banner state-edge';
-    verdictTag.textContent = 'NO CLASSES';
-    verdictIcon.textContent = '🚀';
-    verdictSubtitle.textContent = 'SEMESTER START';
-    verdictTitle.innerHTML = `No classes held yet ${subject}`;
-    verdictText.textContent = 'Attend upcoming classes to build your attendance buffer.';
+  if (!res.held) {
+    $('pct-display').textContent = '0.0%';
+    $('progress-bar').style.width = '0%';
+    $('progress-bar').style.background = 'var(--yellow)';
+    $('margin-text').textContent = '0 classes';
+    $('verdict-banner').className = 'verdict-banner state-edge';
+    $('verdict-tag').textContent = 'NO CLASSES';
+    $('verdict-icon').textContent = '🚀';
+    $('verdict-subtitle').textContent = 'SEMESTER START';
+    $('verdict-title').innerHTML = `No classes held yet ${subText}`;
+    $('verdict-text').textContent = 'Attend upcoming classes to build your attendance buffer.';
   } else if (res.isSafe) {
-    pctDisplay.textContent = `${res.pctFormatted}%`;
-    progressBar.style.width = `${Math.min(100, Math.max(0, res.pct))}%`;
-    progressBar.style.background = 'var(--green)';
-    marginText.textContent = `Safe by +${res.diff}%`;
-    marginText.style.color = '#059669';
-
-    if (res.skippable === 0) {
-      verdictBanner.className = 'verdict-banner state-edge';
-      verdictTag.textContent = 'ON THE EDGE';
-      verdictIcon.textContent = '⚠️';
-      verdictSubtitle.textContent = 'CRITICAL MARGIN';
-      verdictTitle.innerHTML = `Cannot skip any classes ${subject}`;
-      verdictText.textContent = `You are right on your ${res.target}% target line.`;
-    } else {
-      verdictBanner.className = 'verdict-banner state-safe';
-      verdictTag.textContent = 'SAFE TO BUNK';
-      verdictIcon.textContent = '😎';
-      verdictSubtitle.textContent = 'YOU ARE IN THE CLEAR!';
-      verdictTitle.innerHTML = `Can skip <span class="highlight">${res.skippable}</span> class${res.skippable > 1 ? 'es' : ''} ${subject}`;
-      verdictText.textContent = `You can safely miss ${res.skippable} consecutive class(es) and remain >= ${res.target}%.`;
-    }
+    $('pct-display').textContent = `${res.pctFmt}%`;
+    $('progress-bar').style.width = `${Math.min(100, res.pct)}%`;
+    $('progress-bar').style.background = 'var(--green)';
+    $('margin-text').textContent = `Safe by +${res.diff}%`;
+    $('verdict-banner').className = `verdict-banner ${res.skippable ? 'state-safe' : 'state-edge'}`;
+    $('verdict-tag').textContent = res.skippable ? 'SAFE TO BUNK' : 'ON THE EDGE';
+    $('verdict-icon').textContent = res.skippable ? '😎' : '⚠️';
+    $('verdict-subtitle').textContent = res.skippable ? 'YOU ARE IN THE CLEAR!' : 'CRITICAL MARGIN';
+    $('verdict-title').innerHTML = res.skippable
+      ? `Can skip <span class="highlight">${res.skippable}</span> class${res.skippable > 1 ? 'es' : ''} ${subText}`
+      : `Cannot skip any classes ${subText}`;
+    $('verdict-text').textContent = res.skippable
+      ? `You can safely miss ${res.skippable} consecutive class(es) and remain >= ${res.target}%.`
+      : `You are right on your ${res.target}% target line.`;
   } else {
-    pctDisplay.textContent = `${res.pctFormatted}%`;
-    progressBar.style.width = `${Math.min(100, Math.max(0, res.pct))}%`;
-    progressBar.style.background = 'var(--pink)';
-    marginText.textContent = `Deficit by -${res.diff}%`;
-    marginText.style.color = '#dc2626';
-
-    verdictBanner.className = 'verdict-banner state-danger';
-    verdictTag.textContent = 'DANGER ZONE';
-    verdictIcon.textContent = '🚨';
-    verdictSubtitle.textContent = 'ATTENDANCE DEFICIT';
-    verdictTitle.innerHTML = `Attend next <span class="highlight" style="background:var(--pink);color:#fff">${res.recover}</span> class${res.recover > 1 ? 'es' : ''} ${subject}`;
-    verdictText.textContent = `Must attend the next ${res.recover} consecutive class(es) to bounce back to ${res.target}%.`;
+    $('pct-display').textContent = `${res.pctFmt}%`;
+    $('progress-bar').style.width = `${Math.min(100, res.pct)}%`;
+    $('progress-bar').style.background = 'var(--pink)';
+    $('margin-text').textContent = `Deficit by -${res.diff}%`;
+    $('verdict-banner').className = 'verdict-banner state-danger';
+    $('verdict-tag').textContent = 'DANGER ZONE';
+    $('verdict-icon').textContent = '🚨';
+    $('verdict-subtitle').textContent = 'ATTENDANCE DEFICIT';
+    $('verdict-title').innerHTML = `Attend next <span class="highlight" style="background:var(--pink);color:#fff">${res.recover}</span> class${res.recover > 1 ? 'es' : ''} ${subText}`;
+    $('verdict-text').textContent = `Must attend next ${res.recover} consecutive class(es) to bounce back to ${res.target}%.`;
   }
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    subject: subjectNameInput.value,
-    attended: attendedInput.value,
-    held: totalInput.value,
-    target: targetSlider.value
-  }));
+  store('attandie_state', { subject: $('subject-name').value, attended: $('attended').value, held: $('total').value, target: $('target-slider').value });
 }
 
-function loadSingle() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const data = JSON.parse(raw);
-      subjectNameInput.value = data.subject || '';
-      attendedInput.value = data.attended !== undefined && data.attended !== null ? data.attended : 0;
-      totalInput.value = data.held !== undefined && data.held !== null ? data.held : 0;
-      targetSlider.value = data.target || 75;
-      setPill(data.target || 75);
-    } else {
-      subjectNameInput.value = '';
-      attendedInput.value = 0;
-      totalInput.value = 0;
-      targetSlider.value = 75;
-      setPill(75);
+function updateSyncBadge(text, type = 'tag-green') {
+  const b = $('subject-sync-badge');
+  if (!b) return;
+  b.style.display = text ? 'inline-flex' : 'none';
+  b.className = `mini-tag ${type}`;
+  b.textContent = text;
+}
+
+function syncSubjectFromName(force = false) {
+  const name = $('subject-name').value.trim();
+  if (!name) {
+    curSyncedId = null;
+    updateSyncBadge('');
+    return updateUI();
+  }
+  const match = subjects.find(s => s.name.toLowerCase() === name.toLowerCase());
+  if (match) {
+    if (curSyncedId !== match.id || force) {
+      curSyncedId = match.id;
+      $('attended').value = match.attended;
+      $('total').value = match.held;
+      $('target-slider').value = match.target || 75;
+      setPill(match.target || 75);
+      updateUI();
     }
-  } catch (e) {
-    subjectNameInput.value = '';
-    attendedInput.value = 0;
-    totalInput.value = 0;
-    targetSlider.value = 75;
-    setPill(75);
+    updateSyncBadge(`⚡ Synced: ${match.name} (${match.attended}/${match.held})`, 'tag-green');
+  } else {
+    curSyncedId = null;
+    updateSyncBadge(`⚡ New Subject`, 'tag-yellow');
+    updateUI();
   }
-  updateUI();
 }
 
-// Storage Helpers
-function saveSubjects() {
-  localStorage.setItem(MULTI_KEY, JSON.stringify(subjects));
+function syncFormToSubject() {
+  const name = $('subject-name').value.trim();
+  if (!name) return;
+  const att = Math.max(0, parseInt($('attended').value, 10) || 0);
+  const held = Math.max(att, parseInt($('total').value, 10) || 0);
+  const target = parseFloat($('target-slider').value) || 75;
+
+  let sub = subjects.find(s => s.name.toLowerCase() === name.toLowerCase());
+  if (sub) {
+    sub.attended = att; sub.held = held; sub.target = target;
+  } else {
+    sub = { id: String(Date.now()), name, attended: att, held, target };
+    subjects.push(sub);
+  }
+  curSyncedId = sub.id;
+  saveData();
+  updateSyncBadge(`⚡ Synced: ${sub.name} (${sub.attended}/${sub.held})`, 'tag-green');
+}
+
+function saveData() {
+  store('attandie_subjects', subjects);
+  store('attandie_timetable', timetable);
+  store('attandie_daily_logs', dailyLogs);
   renderSubjects();
-  renderTodaySchedule();
-}
-
-function loadSubjects() {
-  try {
-    const raw = localStorage.getItem(MULTI_KEY);
-    subjects = raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    subjects = [];
-  }
-  renderSubjects();
-}
-
-function saveTimetable() {
-  localStorage.setItem(TIMETABLE_KEY, JSON.stringify(timetable));
-  renderTimetable();
-  renderTodaySchedule();
-  updateSuggestions();
-}
-
-function loadTimetable() {
-  try {
-    const raw = localStorage.getItem(TIMETABLE_KEY);
-    timetable = raw ? JSON.parse(raw) : [];
-    dailyLogs = JSON.parse(localStorage.getItem(LOGS_KEY)) || {};
-  } catch (e) {
-    timetable = [];
-    dailyLogs = {};
-  }
-  renderTimetable();
   renderTodaySchedule();
   updateSuggestions();
 }
 
 function setPill(val) {
-  pills.forEach(p => p.classList.toggle('active', p.dataset.val === String(val)));
+  $$('.pills .pill').forEach(p => p.classList.toggle('active', p.dataset.val === String(val)));
 }
 
 function updateSuggestions() {
-  const list = document.getElementById('subject-suggestions');
-  if (list) {
-    list.innerHTML = [...new Set(subjects.map(s => s.name))].map(n => `<option value="${n}">`).join('');
+  const el = $('subject-suggestions');
+  if (el) {
+    const list = [...new Set([...subjects.map(s => s.name), ...timetable.map(t => t.subject)])].filter(Boolean);
+    el.innerHTML = list.map(n => `<option value="${n}">`).join('');
   }
 }
 
@@ -270,53 +164,37 @@ function getOrAddSubject(name) {
   if (!sub) {
     sub = { id: String(Date.now() + Math.random()), name: name.trim(), attended: 0, held: 0, target: 75 };
     subjects.push(sub);
-    saveSubjects();
+    saveData();
   }
   return sub;
 }
 
-// Today's Schedule View
+// Today's Schedule
 function renderTodaySchedule() {
-  const container = document.getElementById('today-slots-container');
-  const today = getTodayName();
-  const dateKey = getTodayDateKey();
-  lastRenderedDateKey = dateKey;
+  const today = getToday();
+  const dateKey = getDateKey();
+  $('current-day-badge').textContent = today.toUpperCase();
+  $('today-card-title').textContent = `📅 Today's Schedule (${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })})`;
 
-  const now = new Date();
-  const formattedTodayDate = now.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric'
-  });
+  const slots = timetable.filter(t => t.day.toLowerCase() === today.toLowerCase());
+  $('today-class-count').textContent = slots.length;
 
-  const dayBadge = document.getElementById('current-day-badge');
-  if (dayBadge) dayBadge.textContent = today.toUpperCase();
-
-  const titleEl = document.getElementById('today-card-title');
-  if (titleEl) titleEl.textContent = `📅 Today's Schedule (${formattedTodayDate})`;
-
-  const todaySlots = timetable.filter(t => t.day.toLowerCase() === today.toLowerCase());
-  const countBadge = document.getElementById('today-class-count');
-  if (countBadge) countBadge.textContent = todaySlots.length;
-
-  if (todaySlots.length === 0) {
+  const container = $('today-slots-container');
+  if (!slots.length) {
     container.innerHTML = `<div class="slot-empty" style="grid-column: 1 / -1;">🎉 No classes scheduled for today (${today})!</div>`;
     return;
   }
 
-  container.innerHTML = todaySlots.map(slot => {
+  container.innerHTML = slots.map(slot => {
     const log = dailyLogs[`${dateKey}_${slot.id}`];
     const sub = subjects.find(s => s.name.toLowerCase() === slot.subject.toLowerCase()) || { attended: 0, held: 0, target: 75 };
-    const res = calculate(sub.attended, sub.held, sub.target);
-
-    const statusTag = log === 'present'
-      ? '<span class="mini-tag">✅ Present</span>'
-      : log === 'absent'
-      ? '<span class="mini-tag tag-pink">❌ Absent</span>'
-      : `<span style="font-size:0.75rem;font-family:'Space Mono';color:#666;">Current: ${res.pctFormatted}%</span>`;
+    const res = calc(sub.attended, sub.held, sub.target);
+    const tag = log === 'present' ? '<span class="mini-tag">✅ Present</span>'
+      : log === 'absent' ? '<span class="mini-tag tag-pink">❌ Absent</span>'
+      : `<span style="font-size:0.75rem;font-family:'Space Mono';color:#666;">Current: ${res.pctFmt}%</span>`;
 
     return `
-      <div class="today-slot ${log === 'present' ? 'logged-present' : log === 'absent' ? 'logged-absent' : ''}">
+      <div class="today-slot ${log ? `logged-${log}` : ''}">
         <div>
           <div class="today-slot-top">
             <div>
@@ -325,143 +203,129 @@ function renderTodaySchedule() {
             </div>
             <span class="slot-time">${slot.time || 'Class'}</span>
           </div>
-          <div style="margin-top:4px;">${statusTag}</div>
+          <div style="margin-top:4px;">${tag}</div>
         </div>
         <div class="btn-group mt-2">
-          <button type="button" class="btn btn-sm btn-green" onclick="logTodayClass('${slot.id}', true)">
-            ${log === 'present' ? '✓ Present' : '+1 Present'}
-          </button>
-          <button type="button" class="btn btn-sm btn-pink" onclick="logTodayClass('${slot.id}', false)">
-            ${log === 'absent' ? '✕ Absent' : '+1 Absent'}
-          </button>
+          <button type="button" class="btn btn-sm btn-green" onclick="logTodayClass('${slot.id}', true)">${log === 'present' ? '✓ Present' : '+1 Present'}</button>
+          <button type="button" class="btn btn-sm btn-pink" onclick="logTodayClass('${slot.id}', false)">${log === 'absent' ? '✕ Absent' : '+1 Absent'}</button>
         </div>
       </div>
     `;
   }).join('');
 }
 
-window.logTodayClass = function(slotId, isPresent) {
+window.logTodayClass = (slotId, isPresent) => {
   const slot = timetable.find(t => t.id === slotId);
   if (!slot) return;
-
-  const dateKey = getTodayDateKey();
-  const logKey = `${dateKey}_${slotId}`;
-  const prev = dailyLogs[logKey];
+  const key = `${getDateKey()}_${slotId}`;
+  const prev = dailyLogs[key];
   const sub = getOrAddSubject(slot.subject);
 
   if (prev === 'present' && isPresent) return showToast('Already marked present!', 'info');
   if (prev === 'absent' && !isPresent) return showToast('Already marked absent!', 'info');
 
   if (prev === 'present') sub.attended = Math.max(0, sub.attended - 1);
-
   if (isPresent) {
     sub.attended += 1;
     if (!prev) sub.held += 1;
-    dailyLogs[logKey] = 'present';
+    dailyLogs[key] = 'present';
     throwConfetti();
     showToast(`✅ +1 Present for ${slot.subject}!`, 'success');
   } else {
     if (!prev) sub.held += 1;
-    dailyLogs[logKey] = 'absent';
+    dailyLogs[key] = 'absent';
     showToast(`⚠️ +1 Absent for ${slot.subject}`, 'warning');
   }
-
-  localStorage.setItem(LOGS_KEY, JSON.stringify(dailyLogs));
-  saveSubjects();
-
-  if (subjectNameInput.value.trim().toLowerCase() === sub.name.toLowerCase()) {
-    attendedInput.value = sub.attended;
-    totalInput.value = sub.held;
+  saveData();
+  if ($('subject-name').value.trim().toLowerCase() === sub.name.toLowerCase()) {
+    $('attended').value = sub.attended;
+    $('total').value = sub.held;
     updateUI();
+    updateSyncBadge(`⚡ Synced: ${sub.name} (${sub.attended}/${sub.held})`, 'tag-green');
   }
 };
 
-// Weekly Timetable View
+// Weekly Timetable
 function renderTimetable() {
-  const container = document.getElementById('timetable-container');
+  const container = $('timetable-container');
   if (!container) return;
-  const todayName = getTodayName();
+  const today = getToday();
 
   container.innerHTML = WEEKDAYS.map(day => {
     const slots = timetable.filter(t => t.day.toLowerCase() === day.toLowerCase());
-    const isToday = day.toLowerCase() === todayName.toLowerCase();
-
-    const slotsHTML = slots.length === 0
-      ? `<div class="slot-empty">No classes scheduled</div>`
-      : slots.map(s => `
-        <div class="slot-item">
-          <div class="slot-item-info">
-            <strong>${s.subject}</strong>
-            <span>⏰ ${s.time || 'N/A'} ${s.room ? `• 📍 ${s.room}` : ''}</span>
-          </div>
-          <div>
-            <button type="button" class="icon-btn" onclick="editSlot('${s.id}')">✏️</button>
-            <button type="button" class="icon-btn" onclick="deleteSlot('${s.id}')">🗑️</button>
-          </div>
+    const isToday = day.toLowerCase() === today.toLowerCase();
+    const items = slots.length ? slots.map(s => `
+      <div class="slot-item">
+        <div class="slot-item-info">
+          <strong>${s.subject}</strong>
+          <span>⏰ ${s.time || 'N/A'} ${s.room ? `• 📍 ${s.room}` : ''}</span>
         </div>
-      `).join('');
+        <div>
+          <button type="button" class="icon-btn" onclick="editSlot('${s.id}')">✏️</button>
+          <button type="button" class="icon-btn" onclick="deleteSlot('${s.id}')">🗑️</button>
+        </div>
+      </div>
+    `).join('') : '<div class="slot-empty">No classes scheduled</div>';
 
     return `
-      <div class="day-card ${isToday ? 'is-today' : ''}" id="day-card-${day}">
+      <div class="day-card ${isToday ? 'is-today' : ''}">
         <div class="day-header">
           <h3>${day} ${isToday ? '<span class="tag tag-yellow" style="font-size:0.65rem">TODAY</span>' : ''}</h3>
           <button type="button" class="btn btn-sm btn-ghost" onclick="openAddSlotModal('${day}')">+ Add</button>
         </div>
-        <div class="slot-list">${slotsHTML}</div>
+        <div class="slot-list">${items}</div>
       </div>
     `;
   }).join('');
 }
 
 window.openAddSlotModal = day => {
-  document.getElementById('modal-slot-id').value = '';
-  document.getElementById('modal-slot-form').reset();
-  document.getElementById('slot-day').value = day;
-  document.getElementById('modal-slot-title').textContent = `Add Class Slot (${day})`;
+  $('modal-slot-id').value = '';
+  $('modal-slot-form').reset();
+  $('slot-day').value = day;
+  $('modal-slot-title').textContent = `Add Class Slot (${day})`;
   updateSuggestions();
-  document.getElementById('modal-slot').showModal();
+  $('modal-slot').showModal();
 };
 
 window.editSlot = id => {
   const slot = timetable.find(t => t.id === id);
   if (!slot) return;
-  document.getElementById('modal-slot-id').value = slot.id;
-  document.getElementById('slot-day').value = slot.day;
-  document.getElementById('slot-subject').value = slot.subject;
-  document.getElementById('slot-time').value = slot.time || '';
-  document.getElementById('slot-room').value = slot.room || '';
-  document.getElementById('modal-slot-title').textContent = 'Edit Slot';
-  document.getElementById('modal-slot').showModal();
+  $('modal-slot-id').value = slot.id;
+  $('slot-day').value = slot.day;
+  $('slot-subject').value = slot.subject;
+  $('slot-time').value = slot.time || '';
+  $('slot-room').value = slot.room || '';
+  $('modal-slot-title').textContent = 'Edit Slot';
+  $('modal-slot').showModal();
 };
 
 window.deleteSlot = id => {
   const slot = timetable.find(t => t.id === id);
   if (slot && confirm(`Remove "${slot.subject}" from ${slot.day}?`)) {
     timetable = timetable.filter(t => t.id !== id);
-    saveTimetable();
+    saveData();
     showToast('🗑️ Slot removed');
   }
 };
 
-// All Subjects View
+// Multi-Subject Management
 function renderSubjects() {
-  const container = document.getElementById('subjects-container');
-  const emptyState = document.getElementById('empty-state');
-  document.getElementById('subject-count').textContent = subjects.length;
+  const container = $('subjects-container');
+  const empty = $('empty-state');
+  $('subject-count').textContent = subjects.length;
 
-  if (subjects.length === 0) {
+  if (!subjects.length) {
     container.innerHTML = '';
-    emptyState.style.display = 'block';
-    updateAggregates();
-    return;
+    empty.style.display = 'block';
+    return updateAggregates();
   }
-
-  emptyState.style.display = 'none';
+  empty.style.display = 'none';
 
   container.innerHTML = subjects.map(sub => {
-    const res = calculate(sub.attended, sub.held, sub.target);
+    const res = calc(sub.attended, sub.held, sub.target);
     const tagBg = res.isSafe ? 'var(--green)' : 'var(--pink)';
-    const verdictBg = res.isSafe ? 'var(--green-lt)' : 'var(--pink-lt)';
+    const vBg = res.isSafe ? 'var(--green-lt)' : 'var(--pink-lt)';
     const vText = res.isSafe
       ? (res.skippable > 0 ? `🌴 Can skip <strong>${res.skippable}</strong> class(es)` : `⚠️ On the edge (0 skips)`)
       : `🚨 Need <strong>${res.recover}</strong> classes to recover`;
@@ -474,25 +338,17 @@ function renderSubjects() {
               <h3>${sub.name}</h3>
               <span style="font-size:0.75rem;font-family:'Space Mono';color:#666">Target: ${sub.target}%</span>
             </div>
-            <span class="tag" style="background:${tagBg};color:${res.isSafe ? 'var(--ink)' : '#fff'}">
-              ${res.pctFormatted}%
-            </span>
+            <span class="tag" style="background:${tagBg};color:${res.isSafe ? 'var(--ink)' : '#fff'}">${res.pctFmt}%</span>
           </div>
-
           <div class="progress-track" style="height:12px;margin:6px 0;">
             <div class="progress-bar" style="width:${Math.min(100, res.pct)}%;background:${res.isSafe ? 'var(--green)' : 'var(--pink)'}"></div>
           </div>
-
           <div style="display:flex;justify-content:space-between;font-size:0.78rem;font-family:'Space Mono';font-weight:700;">
-            <span>Attended: ${res.attended}/${res.held}</span>
+            <span>Attended: ${res.att}/${res.held}</span>
             <span>Missed: ${res.missed}</span>
           </div>
-
-          <div class="sub-verdict" style="background:${verdictBg}">
-            ${vText}
-          </div>
+          <div class="sub-verdict" style="background:${vBg}">${vText}</div>
         </div>
-
         <div>
           <div class="btn-group">
             <button type="button" class="btn btn-sm btn-green" onclick="logSubject('${sub.id}', true)">+1 Present</button>
@@ -509,30 +365,20 @@ function renderSubjects() {
       </div>
     `;
   }).join('');
-
   updateAggregates();
 }
 
 function updateAggregates() {
-  let att = 0;
-  let held = 0;
-  let safe = 0;
-  let risk = 0;
-
+  let att = 0, held = 0, safe = 0, risk = 0;
   subjects.forEach(s => {
-    att += (s.attended || 0);
-    held += (s.held || 0);
-    if ((s.held || 0) > 0) {
-      if (calculate(s.attended, s.held, s.target).isSafe) safe++;
-      else risk++;
-    }
+    att += s.attended || 0;
+    held += s.held || 0;
+    if (s.held) calc(s.attended, s.held, s.target).isSafe ? safe++ : risk++;
   });
-
-  const overall = held === 0 ? 0 : (att / held) * 100;
-  document.getElementById('agg-pct').textContent = `${overall.toFixed(1)}%`;
-  document.getElementById('agg-safe').textContent = safe;
-  document.getElementById('agg-risk').textContent = risk;
-  document.getElementById('agg-total').textContent = held;
+  $('agg-pct').textContent = `${held ? ((att / held) * 100).toFixed(1) : 0.0}%`;
+  $('agg-safe').textContent = safe;
+  $('agg-risk').textContent = risk;
+  $('agg-total').textContent = held;
 }
 
 window.logSubject = (id, isPresent) => {
@@ -540,15 +386,26 @@ window.logSubject = (id, isPresent) => {
   if (!s) return;
   if (isPresent) s.attended += 1;
   s.held += 1;
-  saveSubjects();
+  saveData();
+  if ($('subject-name').value.trim().toLowerCase() === s.name.toLowerCase()) {
+    $('attended').value = s.attended;
+    $('total').value = s.held;
+    updateUI();
+    updateSyncBadge(`⚡ Synced: ${s.name} (${s.attended}/${s.held})`, 'tag-green');
+  }
   showToast(isPresent ? `✅ +1 Present for ${s.name}` : `⚠️ +1 Absent for ${s.name}`, isPresent ? 'success' : 'warning');
 };
 
 window.deleteSubject = id => {
   const s = subjects.find(x => x.id === id);
   if (s && confirm(`Delete "${s.name}"?`)) {
+    const delName = s.name.toLowerCase();
     subjects = subjects.filter(x => x.id !== id);
-    saveSubjects();
+    saveData();
+    if ($('subject-name').value.trim().toLowerCase() === delName) {
+      curSyncedId = null;
+      updateSyncBadge(`⚡ New Subject`, 'tag-yellow');
+    }
     showToast(`🗑️ Deleted ${s.name}`);
   }
 };
@@ -556,274 +413,189 @@ window.deleteSubject = id => {
 window.editSubject = id => {
   const s = subjects.find(x => x.id === id);
   if (!s) return;
-  document.getElementById('modal-id').value = s.id;
-  document.getElementById('modal-name').value = s.name;
-  document.getElementById('modal-attended').value = s.attended;
-  document.getElementById('modal-held').value = s.held;
-  document.getElementById('modal-target').value = s.target;
-  document.getElementById('modal-title').textContent = 'Edit Subject';
-  document.getElementById('modal-subject').showModal();
+  $('modal-id').value = s.id;
+  $('modal-name').value = s.name;
+  $('modal-attended').value = s.attended;
+  $('modal-held').value = s.held;
+  $('modal-target').value = s.target;
+  $('modal-title').textContent = 'Edit Subject';
+  $('modal-subject').showModal();
 };
 
 window.loadIntoCalc = id => {
   const s = subjects.find(x => x.id === id);
   if (!s) return;
-  subjectNameInput.value = s.name;
-  attendedInput.value = s.attended;
-  totalInput.value = s.held;
-  targetSlider.value = s.target;
+  $('subject-name').value = s.name;
+  $('attended').value = s.attended;
+  $('total').value = s.held;
+  $('target-slider').value = s.target;
   setPill(s.target);
+  curSyncedId = s.id;
   updateUI();
+  updateSyncBadge(`⚡ Synced: ${s.name} (${s.attended}/${s.held})`, 'tag-green');
   document.querySelector('[data-tab="calculator"]').click();
   showToast(`⚡ Loaded ${s.name}`);
 };
 
-// Simulator Table
+// Simulator
 function renderSimulator() {
-  const tbody = document.getElementById('sim-tbody');
-  const a = parseInt(attendedInput.value, 10) || 0;
-  const h = parseInt(totalInput.value, 10) || 0;
-  const t = parseFloat(targetSlider.value) || 75;
+  const a = parseInt($('attended').value, 10) || 0;
+  const h = parseInt($('total').value, 10) || 0;
+  const t = parseFloat($('target-slider').value) || 75;
 
-  tbody.innerHTML = Array.from({ length: 10 }, (_, idx) => {
-    const i = idx + 1;
-    const att = calculate(a + i, h + i, t);
-    const bnk = calculate(a, h + i, t);
+  $('sim-tbody').innerHTML = Array.from({ length: 10 }, (_, i) => {
+    const step = i + 1;
+    const att = calc(a + step, h + step, t);
+    const bnk = calc(a, h + step, t);
     return `
       <tr>
-        <td><strong>+${i} class${i > 1 ? 'es' : ''}</strong></td>
-        <td class="${att.isSafe ? 'cell-safe' : 'cell-danger'}">${att.pctFormatted}% (${a + i}/${h + i})</td>
-        <td class="${bnk.isSafe ? 'cell-safe' : 'cell-danger'}">${bnk.pctFormatted}% (${a}/${h + i})</td>
+        <td><strong>+${step} class${step > 1 ? 'es' : ''}</strong></td>
+        <td class="${att.isSafe ? 'cell-safe' : 'cell-danger'}">${att.pctFmt}% (${a + step}/${h + step})</td>
+        <td class="${bnk.isSafe ? 'cell-danger' : 'cell-danger'}">${bnk.pctFmt}% (${a}/${h + step})</td>
         <td><span class="mini-tag ${bnk.isSafe ? '' : 'tag-pink'}">${bnk.isSafe ? 'Safe to skip' : 'Need to attend'}</span></td>
       </tr>
     `;
   }).join('');
 }
 
-// Toast System
+// UI Feedback
 function showToast(msg, type = '') {
-  const toast = document.createElement('div');
-  toast.className = `toast ${type === 'success' ? 'toast-success' : type === 'warning' ? 'toast-warning' : ''}`;
-  toast.textContent = msg;
-  document.getElementById('toasts').appendChild(toast);
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => toast.remove(), 200);
-  }, 2200);
+  const el = document.createElement('div');
+  el.className = `toast ${type ? `toast-${type}` : ''}`;
+  el.textContent = msg;
+  $('toasts').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }, 2200);
 }
 
-// Confetti Animation
 function throwConfetti() {
-  const canvas = document.getElementById('confetti');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-
-  const particles = Array.from({ length: 40 }, () => ({
-    x: window.innerWidth / 2,
-    y: window.innerHeight * 0.4,
+  const cvs = $('confetti');
+  if (!cvs) return;
+  const ctx = cvs.getContext('2d');
+  cvs.width = window.innerWidth; cvs.height = window.innerHeight;
+  const pts = Array.from({ length: 40 }, () => ({
+    x: window.innerWidth / 2, y: window.innerHeight * 0.4,
     size: Math.random() * 8 + 6,
     color: ['#ffe600', '#00f59b', '#ff5470', '#00f0ff', '#121212'][Math.floor(Math.random() * 5)],
-    vx: (Math.random() - 0.5) * 12,
-    vy: (Math.random() - 0.7) * 14,
-    rot: Math.random() * 360,
-    rotSpeed: (Math.random() - 0.5) * 8
+    vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.7) * 14,
+    rot: Math.random() * 360, rotSpeed: (Math.random() - 0.5) * 8
   }));
-
   let f = 0;
-  function step() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    particles.forEach(p => {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.35;
-      p.rot += p.rotSpeed;
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate((p.rot * Math.PI) / 180);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-      ctx.restore();
+  (function step() {
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+    pts.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.35; p.rot += p.rotSpeed;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate((p.rot * Math.PI) / 180);
+      ctx.fillStyle = p.color; ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size); ctx.restore();
     });
     if (++f < 40) requestAnimationFrame(step);
-    else ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }
-  requestAnimationFrame(step);
+    else ctx.clearRect(0, 0, cvs.width, cvs.height);
+  })();
 }
 
-// Initialization & Event Listeners
+function updateLiveClock() {
+  const now = new Date();
+  $('current-day-badge').textContent = DAYS[now.getDay()].toUpperCase();
+  $('live-time-badge').textContent = `🕒 ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`;
+}
+
+// Initialization
 function init() {
-  // Navigation Tabs
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  $$('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
+    $$('.tab-btn, .tab-pane').forEach(el => el.classList.remove('active'));
+    btn.classList.add('active');
+    $(`pane-${btn.dataset.tab}`)?.classList.add('active');
+    if (btn.dataset.tab === 'simulator') renderSimulator();
+    if (btn.dataset.tab === 'timetable') renderTimetable();
+  }));
 
-      btn.classList.add('active');
-      const pane = document.getElementById(`pane-${btn.dataset.tab}`);
-      if (pane) pane.classList.add('active');
-
-      if (btn.dataset.tab === 'simulator') renderSimulator();
-      if (btn.dataset.tab === 'timetable') renderTimetable();
-    });
-  });
-
-  // Mark All Present Today
-  document.getElementById('btn-mark-all-today').addEventListener('click', () => {
-    const today = getTodayName();
-    const dateKey = getTodayDateKey();
-    const todaySlots = timetable.filter(t => t.day.toLowerCase() === today.toLowerCase());
-
-    if (todaySlots.length === 0) return showToast('No classes scheduled today!', 'info');
-
-    let count = 0;
-    todaySlots.forEach(slot => {
-      const logKey = `${dateKey}_${slot.id}`;
-      if (dailyLogs[logKey] !== 'present') {
-        const sub = getOrAddSubject(slot.subject);
-        if (dailyLogs[logKey] === 'absent') {
-          sub.attended += 1;
-        } else {
-          sub.attended += 1;
-          sub.held += 1;
-        }
-        dailyLogs[logKey] = 'present';
-        count++;
-      }
-    });
-
-    localStorage.setItem(LOGS_KEY, JSON.stringify(dailyLogs));
-    saveSubjects();
-    throwConfetti();
-    showToast(`⚡ Marked ${count || 'all'} classes as present!`, 'success');
-  });
-
-  // Direct Inputs
-  const handleInput = () => {
-    if (parseInt(attendedInput.value, 10) > parseInt(totalInput.value, 10)) {
-      totalInput.value = attendedInput.value;
+  const adjustInputs = (dAtt = 0, dHeld = 0) => {
+    if (dAtt || dHeld) {
+      $('attended').value = Math.max(0, (parseInt($('attended').value, 10) || 0) + dAtt);
+      $('total').value = Math.max(parseInt($('attended').value, 10), (parseInt($('total').value, 10) || 0) + dHeld);
+    } else if (parseInt($('attended').value, 10) > parseInt($('total').value, 10)) {
+      $('total').value = $('attended').value;
     }
     updateUI();
+    syncFormToSubject();
   };
 
-  attendedInput.addEventListener('input', handleInput);
-  totalInput.addEventListener('input', handleInput);
-  subjectNameInput.addEventListener('input', updateUI);
+  $('attended').addEventListener('input', () => adjustInputs());
+  $('total').addEventListener('input', () => adjustInputs());
+  $('subject-name').addEventListener('input', () => syncSubjectFromName(false));
+  $('subject-name').addEventListener('change', () => syncSubjectFromName(true));
 
-  // Steppers
-  document.getElementById('btn-attended-plus').addEventListener('click', () => {
-    attendedInput.value = (parseInt(attendedInput.value, 10) || 0) + 1;
-    handleInput();
-  });
+  $('btn-attended-plus').addEventListener('click', () => adjustInputs(1, 0));
+  $('btn-attended-minus').addEventListener('click', () => adjustInputs(-1, 0));
+  $('btn-total-plus').addEventListener('click', () => adjustInputs(0, 1));
+  $('btn-total-minus').addEventListener('click', () => adjustInputs(0, -1));
 
-  document.getElementById('btn-attended-minus').addEventListener('click', () => {
-    const v = parseInt(attendedInput.value, 10) || 0;
-    if (v > 0) {
-      attendedInput.value = v - 1;
-      updateUI();
-    }
-  });
+  $('btn-log-present').addEventListener('click', () => { adjustInputs(1, 1); throwConfetti(); showToast('✅ Logged +1 Present', 'success'); });
+  $('btn-log-absent').addEventListener('click', () => { adjustInputs(0, 1); showToast('⚠️ Logged +1 Absent', 'warning'); });
 
-  document.getElementById('btn-total-plus').addEventListener('click', () => {
-    totalInput.value = (parseInt(totalInput.value, 10) || 0) + 1;
-    updateUI();
-  });
+  $('target-slider').addEventListener('input', e => { setPill(e.target.value); updateUI(); syncFormToSubject(); });
+  $$('.pills .pill').forEach(pill => pill.addEventListener('click', () => { $('target-slider').value = pill.dataset.val; setPill(pill.dataset.val); updateUI(); syncFormToSubject(); }));
 
-  document.getElementById('btn-total-minus').addEventListener('click', () => {
-    const t = parseInt(totalInput.value, 10) || 0;
-    const a = parseInt(attendedInput.value, 10) || 0;
-    if (t > a) {
-      totalInput.value = t - 1;
-      updateUI();
-    }
-  });
-
-  // Quick Action Buttons
-  document.getElementById('btn-log-present').addEventListener('click', () => {
-    attendedInput.value = (parseInt(attendedInput.value, 10) || 0) + 1;
-    totalInput.value = (parseInt(totalInput.value, 10) || 0) + 1;
-    updateUI();
-    throwConfetti();
-    showToast('✅ Logged +1 Present', 'success');
-  });
-
-  document.getElementById('btn-log-absent').addEventListener('click', () => {
-    totalInput.value = (parseInt(totalInput.value, 10) || 0) + 1;
-    updateUI();
-    showToast('⚠️ Logged +1 Absent', 'warning');
-  });
-
-  // Target Slider & Pills
-  targetSlider.addEventListener('input', e => {
-    setPill(e.target.value);
-    updateUI();
-  });
-
-  pills.forEach(pill => {
-    pill.addEventListener('click', () => {
-      targetSlider.value = pill.dataset.val;
-      setPill(pill.dataset.val);
-      updateUI();
-    });
-  });
-
-  // Reset
-  document.getElementById('btn-reset').addEventListener('click', () => {
-    subjectNameInput.value = '';
-    attendedInput.value = 0;
-    totalInput.value = 0;
-    targetSlider.value = 75;
+  $('btn-reset').addEventListener('click', () => {
+    $('calc-form').reset();
+    $('target-slider').value = 75;
     setPill(75);
+    curSyncedId = null;
+    updateSyncBadge('');
     updateUI();
     showToast('↺ Reset to 0');
   });
 
-  // Save to Subjects
-  document.getElementById('btn-save-subject').addEventListener('click', () => {
-    const name = subjectNameInput.value.trim() || 'New Subject';
-    const sub = getOrAddSubject(name);
-    sub.attended = parseInt(attendedInput.value, 10) || 0;
-    sub.held = parseInt(totalInput.value, 10) || 0;
-    sub.target = parseFloat(targetSlider.value) || 75;
-    saveSubjects();
+  $('btn-save-subject').addEventListener('click', () => {
+    const name = $('subject-name').value.trim() || 'New Subject';
+    $('subject-name').value = name;
+    syncFormToSubject();
     showToast(`💾 Saved "${name}" to subjects!`, 'success');
   });
 
-  // Copy & Share
-  document.getElementById('btn-copy').addEventListener('click', () => {
-    const res = calculate(attendedInput.value, totalInput.value, targetSlider.value);
-    const n = subjectNameInput.value.trim() || 'Attendance';
-    navigator.clipboard.writeText(`📊 *${n}*: ${res.attended}/${res.held} (${res.pctFormatted}%) | Target: ${res.target}%\n${res.isSafe ? `🌴 Can skip: ${res.skippable} class(es)` : `🚨 Need to attend: ${res.recover} class(es)`}\n⚡ Attandie`).then(() => showToast('📋 Copied to clipboard!', 'success'));
+  $('btn-copy').addEventListener('click', () => {
+    const res = calc($('attended').value, $('total').value, $('target-slider').value);
+    const n = $('subject-name').value.trim() || 'Attendance';
+    navigator.clipboard.writeText(`📊 *${n}*: ${res.att}/${res.held} (${res.pctFmt}%) | Target: ${res.target}%\n${res.isSafe ? `🌴 Can skip: ${res.skippable} class(es)` : `🚨 Need to attend: ${res.recover} class(es)`}\n⚡ Attandie`).then(() => showToast('📋 Copied to clipboard!', 'success'));
   });
 
-  document.getElementById('btn-share').addEventListener('click', () => {
-    const res = calculate(attendedInput.value, totalInput.value, targetSlider.value);
-    const n = subjectNameInput.value.trim() || 'Attendance';
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`📊 *${n}*: ${res.attended}/${res.held} (${res.pctFormatted}%)\n${res.isSafe ? `Can skip: ${res.skippable} class(es)!` : `Need to attend next ${res.recover} classes!`}`)}`, '_blank');
+  $('btn-share').addEventListener('click', () => {
+    const res = calc($('attended').value, $('total').value, $('target-slider').value);
+    const n = $('subject-name').value.trim() || 'Attendance';
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`📊 *${n}*: ${res.att}/${res.held} (${res.pctFmt}%)\n${res.isSafe ? `Can skip: ${res.skippable} class(es)!` : `Need to attend next ${res.recover} classes!`}`)}`, '_blank');
   });
 
-  // Subject Modal
-  document.getElementById('btn-add-subject').addEventListener('click', () => {
-    document.getElementById('modal-id').value = '';
-    document.getElementById('modal-form').reset();
-    document.getElementById('modal-title').textContent = 'Add Subject';
-    document.getElementById('modal-subject').showModal();
+  $('btn-mark-all-today').addEventListener('click', () => {
+    const dateKey = getDateKey();
+    const slots = timetable.filter(t => t.day.toLowerCase() === getToday().toLowerCase());
+    if (!slots.length) return showToast('No classes scheduled today!', 'info');
+    let count = 0;
+    slots.forEach(slot => {
+      const key = `${dateKey}_${slot.id}`;
+      if (dailyLogs[key] !== 'present') {
+        const sub = getOrAddSubject(slot.subject);
+        if (dailyLogs[key] !== 'absent') sub.held += 1;
+        sub.attended += 1;
+        dailyLogs[key] = 'present';
+        count++;
+      }
+    });
+    saveData();
+    throwConfetti();
+    showToast(`⚡ Marked ${count || 'all'} classes as present!`, 'success');
   });
 
-  document.getElementById('btn-empty-add').addEventListener('click', () => document.getElementById('btn-add-subject').click());
+  // Modals
+  $('btn-add-subject').addEventListener('click', () => { $('modal-id').value = ''; $('modal-form').reset(); $('modal-title').textContent = 'Add Subject'; $('modal-subject').showModal(); });
+  $('btn-empty-add').addEventListener('click', () => $('btn-add-subject').click());
+  $('modal-close').addEventListener('click', () => $('modal-subject').close());
+  $('modal-cancel').addEventListener('click', () => $('modal-subject').close());
 
-  document.getElementById('modal-close').addEventListener('click', () => document.getElementById('modal-subject').close());
-  document.getElementById('modal-cancel').addEventListener('click', () => document.getElementById('modal-subject').close());
-
-  document.getElementById('modal-form').addEventListener('submit', e => {
+  $('modal-form').addEventListener('submit', e => {
     e.preventDefault();
-    const id = document.getElementById('modal-id').value;
-    const name = document.getElementById('modal-name').value.trim();
-    const attended = parseInt(document.getElementById('modal-attended').value, 10) || 0;
-    const held = parseInt(document.getElementById('modal-held').value, 10) || 0;
-    const target = parseFloat(document.getElementById('modal-target').value) || 75;
-
+    const id = $('modal-id').value, name = $('modal-name').value.trim();
+    const attended = parseInt($('modal-attended').value, 10) || 0;
+    const held = parseInt($('modal-held').value, 10) || 0;
+    const target = parseFloat($('modal-target').value) || 75;
     if (!name) return;
 
     if (id) {
@@ -832,24 +604,22 @@ function init() {
     } else {
       subjects.push({ id: String(Date.now()), name, attended, held, target });
     }
-
-    saveSubjects();
-    document.getElementById('modal-subject').close();
+    saveData();
+    if ($('subject-name').value.trim().toLowerCase() === name.toLowerCase()) {
+      $('attended').value = attended; $('total').value = held; $('target-slider').value = target;
+      setPill(target); updateUI(); updateSyncBadge(`⚡ Synced: ${name} (${attended}/${held})`, 'tag-green');
+    }
+    $('modal-subject').close();
     showToast(`💾 Saved ${name}`, 'success');
   });
 
-  // Timetable Slot Modal Handlers
-  document.getElementById('modal-slot-close').addEventListener('click', () => document.getElementById('modal-slot').close());
-  document.getElementById('modal-slot-cancel').addEventListener('click', () => document.getElementById('modal-slot').close());
+  $('modal-slot-close').addEventListener('click', () => $('modal-slot').close());
+  $('modal-slot-cancel').addEventListener('click', () => $('modal-slot').close());
 
-  document.getElementById('modal-slot-form').addEventListener('submit', e => {
+  $('modal-slot-form').addEventListener('submit', e => {
     e.preventDefault();
-    const id = document.getElementById('modal-slot-id').value;
-    const day = document.getElementById('slot-day').value;
-    const sub = document.getElementById('slot-subject').value.trim();
-    const time = document.getElementById('slot-time').value.trim();
-    const room = document.getElementById('slot-room').value.trim();
-
+    const id = $('modal-slot-id').value, day = $('slot-day').value, sub = $('slot-subject').value.trim();
+    const time = $('slot-time').value.trim(), room = $('slot-room').value.trim();
     if (!sub) return;
 
     if (id) {
@@ -858,37 +628,41 @@ function init() {
     } else {
       timetable.push({ id: 't_' + Date.now(), day, subject: sub, time, room });
     }
-
     getOrAddSubject(sub);
-    saveTimetable();
-    document.getElementById('modal-slot').close();
-    showToast(`💾 Saved class slot for ${day}`, 'success');
+    saveData();
+    $('modal-slot').close();
+    showToast(`💾 Saved slot for ${day}`, 'success');
   });
 
-  document.getElementById('btn-sim-sync').addEventListener('click', () => {
-    renderSimulator();
-    showToast('🔄 Synced');
-  });
+  $('btn-sim-sync').addEventListener('click', () => { renderSimulator(); showToast('🔄 Synced'); });
 
-  document.getElementById('btn-clear').addEventListener('click', () => {
+  $('btn-clear').addEventListener('click', () => {
     if (confirm('Clear all data and reset to defaults?')) {
       localStorage.clear();
-      subjects = [];
-      timetable = [];
-      dailyLogs = {};
-      loadSingle();
-      loadSubjects();
-      loadTimetable();
+      subjects = []; timetable = []; dailyLogs = {};
+      $('calc-form').reset();
+      saveData();
+      updateUI();
       showToast('🗑️ Cleared all data');
     }
   });
 
   // Boot
-  updateLiveDateTime();
-  setInterval(updateLiveDateTime, 1000);
-  loadSingle();
-  loadSubjects();
-  loadTimetable();
+  updateLiveClock();
+  setInterval(updateLiveClock, 1000);
+  saveData();
+
+  const saved = store('attandie_state');
+  if (saved) {
+    $('subject-name').value = saved.subject || '';
+    $('attended').value = saved.attended || 0;
+    $('total').value = saved.held || 0;
+    $('target-slider').value = saved.target || 75;
+    setPill(saved.target || 75);
+    syncSubjectFromName(true);
+  } else {
+    updateUI();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
