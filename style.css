@@ -215,9 +215,6 @@ body {
   gap: 20px;
 }
 
-@media (max-width: 860px) {
-  .grid-2col { grid-template-columns: 1fr; }
-}
 
 /* TODAY'S SCHEDULE */
 .today-grid {
@@ -582,9 +579,6 @@ input[type="range"]::-webkit-slider-thumb {
   margin-bottom: 14px;
 }
 
-@media (max-width: 680px) {
-  .stats-row { grid-template-columns: repeat(2, 1fr); }
-}
 
 .stat-box {
   background: #fff;
@@ -834,3 +828,426 @@ dialog::backdrop {
   pointer-events: none;
   z-index: 999;
 }
+
+/* ==========================================================================
+   RESPONSIVE DESIGN & MEDIA QUERIES
+   1. Phone Screen (Mobile: max-width: 640px)
+   2. Tablet Screen (Tab: 641px - 1024px)
+   3. Laptop & Desktop Screen (Laptop: 1025px and up)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. PHONE SCREEN (Smartphones & Mobile Devices: <= 640px)
+   -------------------------------------------------------------------------- */
+@media screen and (max-width: 640px) {
+  .app {
+    padding: 12px 12px 32px;
+  }
+
+  .ticker {
+    font-size: 0.72rem;
+    padding: 4px 0;
+  }
+
+  .top-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .logo {
+    justify-content: flex-start;
+  }
+
+  .logo-badge {
+    width: 38px;
+    height: 38px;
+    font-size: 1.25rem;
+    border-radius: 8px;
+  }
+
+  .logo h1 {
+    font-size: 1.45rem;
+  }
+
+  .logo p {
+    font-size: 0.78rem;
+  }
+
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .tag {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+  }
+
+  /* Smooth scrollable tab bar on phones */
+  .tabs {
+    gap: 6px;
+    padding-bottom: 6px;
+    margin-bottom: 16px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-btn {
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Cards & Headers */
+  .card {
+    padding: 14px;
+    border-radius: 10px;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+
+  .card-header {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    gap: 8px;
+  }
+
+  .card-header h2 {
+    font-size: 1.1rem;
+  }
+
+  /* 1-column layout for form and verdict on phones */
+  .grid-2col {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* Today's slots list */
+  .today-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .today-slot {
+    padding: 10px;
+  }
+
+  /* Forms & Steppers */
+  .form-group {
+    margin-bottom: 12px;
+  }
+
+  .form-row {
+    gap: 8px;
+  }
+
+  .stepper button {
+    width: 36px;
+    font-size: 1.1rem;
+  }
+
+  .stepper input {
+    font-size: 1rem;
+    padding: 4px !important;
+  }
+
+  /* Pills & Target */
+  .pills {
+    gap: 4px;
+    margin: 4px 0 6px;
+  }
+
+  .pill {
+    font-size: 0.72rem;
+    padding: 2px 6px;
+  }
+
+  /* Verdict card adjustments */
+  .verdict-banner {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .verdict-icon {
+    font-size: 1.8rem;
+  }
+
+  .verdict-title {
+    font-size: 1.15rem;
+  }
+
+  .verdict-desc {
+    font-size: 0.78rem;
+  }
+
+  .gauge-box {
+    padding: 8px 10px;
+    margin-bottom: 12px;
+  }
+
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .stat-box {
+    padding: 5px 6px;
+  }
+
+  .stat-box strong {
+    font-size: 1rem;
+  }
+
+  /* Timetable & Subjects Grid: 1 column */
+  .days-grid, .subjects-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .day-card, .subject-card {
+    padding: 12px;
+  }
+
+  .btn {
+    font-size: 0.8rem;
+    padding: 8px 10px;
+  }
+
+  /* Dialogs / Modals */
+  dialog {
+    max-width: 95%;
+    padding: 8px;
+  }
+
+  .modal-card {
+    padding: 14px;
+  }
+
+  /* Toasts */
+  .toast-container {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .toast {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+  }
+
+  /* Footer */
+  .footer {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .footer .btn {
+    width: 100%;
+  }
+}
+
+/* Extra small phone screens (e.g. iPhone SE, <= 420px) */
+@media screen and (max-width: 420px) {
+  .app {
+    padding: 10px 8px 24px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .btn-group {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .btn-group .btn {
+    width: 100%;
+  }
+
+  .verdict-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. TABLET SCREEN (Tabs & iPads: 641px to 1024px)
+   -------------------------------------------------------------------------- */
+@media screen and (min-width: 641px) and (max-width: 1024px) {
+  .app {
+    max-width: 100%;
+    padding: 18px 20px 36px;
+  }
+
+  .top-nav {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .tabs {
+    gap: 8px;
+  }
+
+  .tab-btn {
+    padding: 10px 14px;
+    font-size: 0.88rem;
+  }
+
+  /* Today's slots: 2 columns */
+  .today-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+
+  /* Days & Subjects: 2 columns */
+  .days-grid, .subjects-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .day-card, .subject-card {
+    padding: 14px;
+  }
+
+  /* Stepper touch targets */
+  .stepper button {
+    width: 42px;
+  }
+
+  dialog {
+    max-width: 460px;
+  }
+}
+
+/* Portrait Tablet / Smaller Tab (641px to 860px) */
+@media screen and (min-width: 641px) and (max-width: 860px) {
+  .grid-2col {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Landscape Tablet / Wide Tab (861px to 1024px) */
+@media screen and (min-width: 861px) and (max-width: 1024px) {
+  .grid-2col {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .stats-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. LAPTOP & DESKTOP SCREEN (Laptops & Desktops: >= 1025px)
+   -------------------------------------------------------------------------- */
+@media screen and (min-width: 1025px) {
+  .app {
+    max-width: 1140px;
+    padding: 24px 20px 48px;
+  }
+
+  .logo-badge {
+    width: 48px;
+    height: 48px;
+    font-size: 1.6rem;
+  }
+
+  .logo h1 {
+    font-size: 2rem;
+  }
+
+  .logo p {
+    font-size: 0.9rem;
+  }
+
+  .tab-btn {
+    padding: 12px 18px;
+    font-size: 0.95rem;
+  }
+
+  .card {
+    padding: 24px;
+  }
+
+  /* 2-column balanced calculator grid */
+  .grid-2col {
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 24px;
+  }
+
+  /* Today's slots */
+  .today-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+
+  /* Timetable & Subjects: 3 columns */
+  .days-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .subjects-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  /* Stats: 4 clean columns */
+  .stats-row {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .stat-box {
+    padding: 8px 10px;
+  }
+
+  .stat-box strong {
+    font-size: 1.25rem;
+  }
+
+  .verdict-title {
+    font-size: 1.45rem;
+  }
+
+  .verdict-icon {
+    font-size: 2.6rem;
+  }
+
+  .gauge-box {
+    padding: 14px;
+  }
+}
+
+/* Wide / Ultrawide Screens (>= 1360px) */
+@media screen and (min-width: 1360px) {
+  .app {
+    max-width: 1280px;
+  }
+
+  .days-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
