@@ -219,8 +219,8 @@ body {
 /* TODAY'S SCHEDULE */
 .today-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 14px;
 }
 
 .today-slot {
@@ -238,22 +238,25 @@ body {
 
 .today-slot .btn-group {
   display: flex;
-  gap: 5px;
+  gap: 6px;
   width: 100%;
 }
 
 .today-slot .btn-group .btn {
   flex: 1 1 0;
   min-width: 0;
-  padding: 6px 3px;
-  font-size: 0.72rem;
-  letter-spacing: -0.2px;
+  padding: 6px 4px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: 0;
   border: var(--border-sm);
   box-shadow: 2px 2px 0 var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  gap: 2px;
+  gap: 3px;
 }
 
 .today-slot .btn-group .btn:hover {
@@ -1159,8 +1162,8 @@ dialog::backdrop {
 
   /* Today's slots: 2 columns */
   .today-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
   }
 
   /* Days & Subjects: 2 columns */
@@ -1247,8 +1250,8 @@ dialog::backdrop {
 
   /* Today's slots */
   .today-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 14px;
   }
 
   /* Timetable & Subjects: 3 columns */
