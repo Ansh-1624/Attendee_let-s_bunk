@@ -50,7 +50,10 @@
               <h2 id="today-card-title">📅 Today's Classes</h2>
               <p class="desc">Mark attendance to sync automatically with your running semester standing.</p>
             </div>
-            <button type="button" class="btn btn-sm btn-yellow" id="btn-mark-all-today">⚡ Mark All Present</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm btn-yellow" id="btn-mark-all-today">⚡ Mark All Present</button>
+              <button type="button" class="btn btn-sm btn-muted" id="btn-mark-all-cancelled">🌴 Day Off (Cancel All)</button>
+            </div>
           </div>
           <div class="today-grid" id="today-slots-container"></div>
         </div>

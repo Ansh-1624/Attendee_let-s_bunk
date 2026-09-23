@@ -237,6 +237,15 @@ body {
 
 .today-slot.logged-present { background: var(--green-lt); }
 .today-slot.logged-absent { background: var(--pink-lt); }
+.today-slot.logged-cancelled { 
+  background: #f1f5f9; 
+  border-style: dashed;
+  opacity: 0.85;
+}
+.today-slot.logged-cancelled .slot-name {
+  text-decoration: line-through;
+  color: #64748b;
+}
 
 .today-slot-top {
   display: flex;
@@ -463,7 +472,16 @@ input[type="range"]::-webkit-slider-thumb {
 .btn-secondary { background: #fff; }
 .btn-green { background: var(--green); }
 .btn-pink { background: var(--pink); color: #fff; }
+.btn-muted { background: #e2e8f0; color: #334155; }
+.btn-muted:hover { background: #cbd5e1; }
 .btn-ghost { background: transparent; }
+
+.tag-muted { background: #e2e8f0; color: #334155; }
+
+.active-slot-btn {
+  box-shadow: inset 0 0 0 2px var(--ink), 1px 1px 0 var(--ink) !important;
+  font-weight: 900 !important;
+}
 
 /* VERDICT CARD */
 .verdict-card {

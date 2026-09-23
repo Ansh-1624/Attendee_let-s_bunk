@@ -191,6 +191,7 @@ function renderTodaySchedule() {
     const res = calc(sub.attended, sub.held, sub.target);
     const tag = log === 'present' ? '<span class="mini-tag">✅ Present</span>'
       : log === 'absent' ? '<span class="mini-tag tag-pink">❌ Absent</span>'
+      : log === 'cancelled' ? '<span class="mini-tag tag-muted">🚫 Cancelled (No Penalty)</span>'
       : `<span style="font-size:0.75rem;font-family:'Space Mono';color:#666;">Current: ${res.pctFmt}%</span>`;
 
     return `
@@ -206,36 +207,70 @@ function renderTodaySchedule() {
           <div style="margin-top:4px;">${tag}</div>
         </div>
         <div class="btn-group mt-2">
-          <button type="button" class="btn btn-sm btn-green" onclick="logTodayClass('${slot.id}', true)">${log === 'present' ? '✓ Present' : '+1 Present'}</button>
-          <button type="button" class="btn btn-sm btn-pink" onclick="logTodayClass('${slot.id}', false)">${log === 'absent' ? '✕ Absent' : '+1 Absent'}</button>
+          <button type="button" class="btn btn-sm btn-green ${log === 'present' ? 'active-slot-btn' : ''}" onclick="logTodayClass('${slot.id}', 'present')">${log === 'present' ? '✓ Present' : '+1 Present'}</button>
+          <button type="button" class="btn btn-sm btn-pink ${log === 'absent' ? 'active-slot-btn' : ''}" onclick="logTodayClass('${slot.id}', 'absent')">${log === 'absent' ? '✕ Absent' : '+1 Absent'}</button>
+          <button type="button" class="btn btn-sm btn-muted ${log === 'cancelled' ? 'active-slot-btn' : ''}" onclick="logTodayClass('${slot.id}', 'cancelled')">${log === 'cancelled' ? '🚫 Cancelled' : '🚫 Cancel'}</button>
         </div>
       </div>
     `;
   }).join('');
 }
 
-window.logTodayClass = (slotId, isPresent) => {
+window.logTodayClass = (slotId, action) => {
   const slot = timetable.find(t => t.id === slotId);
   if (!slot) return;
   const key = `${getDateKey()}_${slotId}`;
   const prev = dailyLogs[key];
   const sub = getOrAddSubject(slot.subject);
 
-  if (prev === 'present' && isPresent) return showToast('Already marked present!', 'info');
-  if (prev === 'absent' && !isPresent) return showToast('Already marked absent!', 'info');
+  // Normalize action parameter
+  let targetAction = action;
+  if (action === true) targetAction = 'present';
+  if (action === false) targetAction = 'absent';
 
-  if (prev === 'present') sub.attended = Math.max(0, sub.attended - 1);
-  if (isPresent) {
+  // Toggle off if clicking the same status again
+  if (prev === targetAction) {
+    if (prev === 'present') {
+      sub.attended = Math.max(0, sub.attended - 1);
+      sub.held = Math.max(0, sub.held - 1);
+    } else if (prev === 'absent') {
+      sub.held = Math.max(0, sub.held - 1);
+    }
+    delete dailyLogs[key];
+    saveData();
+    if ($('subject-name').value.trim().toLowerCase() === sub.name.toLowerCase()) {
+      $('attended').value = sub.attended;
+      $('total').value = sub.held;
+      updateUI();
+      updateSyncBadge(`⚡ Synced: ${sub.name} (${sub.attended}/${sub.held})`, 'tag-green');
+    }
+    return showToast(`↺ Status cleared for ${slot.subject}`, 'info');
+  }
+
+  // Revert previous state if it affected counters
+  if (prev === 'present') {
+    sub.attended = Math.max(0, sub.attended - 1);
+    sub.held = Math.max(0, sub.held - 1);
+  } else if (prev === 'absent') {
+    sub.held = Math.max(0, sub.held - 1);
+  }
+
+  // Apply new state
+  if (targetAction === 'present') {
     sub.attended += 1;
-    if (!prev) sub.held += 1;
+    sub.held += 1;
     dailyLogs[key] = 'present';
     throwConfetti();
     showToast(`✅ +1 Present for ${slot.subject}!`, 'success');
-  } else {
-    if (!prev) sub.held += 1;
+  } else if (targetAction === 'absent') {
+    sub.held += 1;
     dailyLogs[key] = 'absent';
     showToast(`⚠️ +1 Absent for ${slot.subject}`, 'warning');
+  } else if (targetAction === 'cancelled') {
+    dailyLogs[key] = 'cancelled';
+    showToast(`🚫 ${slot.subject} marked Cancelled (Timetable intact & 0 penalty)`, 'info');
   }
+
   saveData();
   if ($('subject-name').value.trim().toLowerCase() === sub.name.toLowerCase()) {
     $('attended').value = sub.attended;
@@ -571,10 +606,16 @@ function init() {
     let count = 0;
     slots.forEach(slot => {
       const key = `${dateKey}_${slot.id}`;
-      if (dailyLogs[key] !== 'present') {
+      const prev = dailyLogs[key];
+      if (prev !== 'present') {
         const sub = getOrAddSubject(slot.subject);
-        if (dailyLogs[key] !== 'absent') sub.held += 1;
-        sub.attended += 1;
+        if (prev === 'absent') {
+          sub.attended += 1; // already counted in held
+        } else {
+          // was cancelled or unlogged
+          sub.attended += 1;
+          sub.held += 1;
+        }
         dailyLogs[key] = 'present';
         count++;
       }
@@ -582,6 +623,26 @@ function init() {
     saveData();
     throwConfetti();
     showToast(`⚡ Marked ${count || 'all'} classes as present!`, 'success');
+  });
+
+  $('btn-mark-all-cancelled')?.addEventListener('click', () => {
+    const dateKey = getDateKey();
+    const slots = timetable.filter(t => t.day.toLowerCase() === getToday().toLowerCase());
+    if (!slots.length) return showToast('No classes scheduled today!', 'info');
+    slots.forEach(slot => {
+      const key = `${dateKey}_${slot.id}`;
+      const prev = dailyLogs[key];
+      const sub = getOrAddSubject(slot.subject);
+      if (prev === 'present') {
+        sub.attended = Math.max(0, sub.attended - 1);
+        sub.held = Math.max(0, sub.held - 1);
+      } else if (prev === 'absent') {
+        sub.held = Math.max(0, sub.held - 1);
+      }
+      dailyLogs[key] = 'cancelled';
+    });
+    saveData();
+    showToast(`🌴 Marked today's schedule as Cancelled / Day Off (0 penalty)`, 'info');
   });
 
   // Modals
