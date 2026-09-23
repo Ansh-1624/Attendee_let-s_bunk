@@ -219,8 +219,8 @@ body {
 /* TODAY'S SCHEDULE */
 .today-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
 }
 
 .today-slot {
@@ -233,6 +233,37 @@ body {
   flex-direction: column;
   justify-content: space-between;
   gap: 8px;
+  overflow: hidden;
+}
+
+.today-slot .btn-group {
+  display: flex;
+  gap: 5px;
+  width: 100%;
+}
+
+.today-slot .btn-group .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 6px 3px;
+  font-size: 0.72rem;
+  letter-spacing: -0.2px;
+  border: var(--border-sm);
+  box-shadow: 2px 2px 0 var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  gap: 2px;
+}
+
+.today-slot .btn-group .btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.today-slot .btn-group .btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink);
 }
 
 .today-slot.logged-present { background: var(--green-lt); }
@@ -466,7 +497,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .btn-sm { padding: 4px 8px; font-size: 0.78rem; }
-.btn-group .btn { flex: 1; }
+.btn-group .btn { flex: 1 1 0; min-width: 0; }
 
 .btn-primary, .btn-yellow { background: var(--yellow); }
 .btn-secondary { background: #fff; }

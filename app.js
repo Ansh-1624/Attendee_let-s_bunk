@@ -207,9 +207,9 @@ function renderTodaySchedule() {
           <div style="margin-top:4px;">${tag}</div>
         </div>
         <div class="btn-group mt-2">
-          <button type="button" class="btn btn-sm btn-green ${log === 'present' ? 'active-slot-btn' : ''}" onclick="logTodayClass('${slot.id}', 'present')">${log === 'present' ? '✓ Present' : '+1 Present'}</button>
-          <button type="button" class="btn btn-sm btn-pink ${log === 'absent' ? 'active-slot-btn' : ''}" onclick="logTodayClass('${slot.id}', 'absent')">${log === 'absent' ? '✕ Absent' : '+1 Absent'}</button>
-          <button type="button" class="btn btn-sm btn-muted ${log === 'cancelled' ? 'active-slot-btn' : ''}" onclick="logTodayClass('${slot.id}', 'cancelled')">${log === 'cancelled' ? '🚫 Cancelled' : '🚫 Cancel'}</button>
+          <button type="button" class="btn btn-sm btn-green ${log === 'present' ? 'active-slot-btn' : ''}" onclick="logTodayClass('${slot.id}', 'present')" title="Mark Present">${log === 'present' ? '✓ Present' : '+ Present'}</button>
+          <button type="button" class="btn btn-sm btn-pink ${log === 'absent' ? 'active-slot-btn' : ''}" onclick="logTodayClass('${slot.id}', 'absent')" title="Mark Absent">${log === 'absent' ? '✕ Absent' : '+ Absent'}</button>
+          <button type="button" class="btn btn-sm btn-muted ${log === 'cancelled' ? 'active-slot-btn' : ''}" onclick="logTodayClass('${slot.id}', 'cancelled')" title="Mark Cancelled / Off">${log === 'cancelled' ? '🚫 Off' : '🚫 Cancel'}</button>
         </div>
       </div>
     `;
