@@ -167,6 +167,17 @@ body {
 .tab-pane { display: none; }
 .tab-pane.active { display: block; }
 
+/* Responsive Visibility Helpers (Desktop Defaults) */
+.tab-label-short { display: none; }
+.tab-label-full { display: inline; }
+.tab-icon { margin-right: 4px; display: inline-block; }
+.mobile-bottom-nav { display: none; }
+.calc-mobile-switcher { display: none; }
+.mobile-live-banner { display: none; }
+.mobile-only-btn { display: none; }
+.timetable-mobile-filter { display: none; }
+.today-toggle-btn { display: none; }
+
 /* CARDS & GRIDS */
 .card {
   background: var(--card);
@@ -893,7 +904,7 @@ dialog::backdrop {
    -------------------------------------------------------------------------- */
 @media screen and (max-width: 640px) {
   .app {
-    padding: 12px 12px 32px;
+    padding: 10px 10px calc(76px + env(safe-area-inset-bottom, 12px));
   }
 
   .ticker {
@@ -904,8 +915,8 @@ dialog::backdrop {
   .top-nav {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: 10px;
+    margin-bottom: 14px;
   }
 
   .logo {
@@ -913,18 +924,18 @@ dialog::backdrop {
   }
 
   .logo-badge {
-    width: 38px;
-    height: 38px;
-    font-size: 1.25rem;
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
     border-radius: 8px;
   }
 
   .logo h1 {
-    font-size: 1.45rem;
+    font-size: 1.35rem;
   }
 
   .logo p {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
   }
 
   .badges {
@@ -935,51 +946,374 @@ dialog::backdrop {
   }
 
   .tag {
-    font-size: 0.68rem;
-    padding: 3px 8px;
+    font-size: 0.66rem;
+    padding: 3px 7px;
   }
 
-  /* Smooth scrollable tab bar on phones */
+  /* Grid of all 4 tabs on phones: 100% visible, no cut-off, no mystery */
   .tabs {
-    gap: 6px;
-    padding-bottom: 6px;
-    margin-bottom: 16px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    margin-bottom: 14px;
+    overflow-x: visible;
+    padding-bottom: 0;
   }
 
-  .tabs::-webkit-scrollbar {
-    display: none;
+  .tab-label-full {
+    display: none !important;
+  }
+
+  .tab-label-short {
+    display: block !important;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+
+  .tab-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+    margin-right: 0;
   }
 
   .tab-btn {
-    padding: 8px 12px;
-    font-size: 0.82rem;
+    padding: 8px 3px 6px;
     border-radius: 8px;
+    flex-shrink: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 3px;
+    position: relative;
+    border: var(--border-sm);
+    box-shadow: 2.5px 2.5px 0 var(--ink);
+  }
+
+  .tab-btn:hover {
+    transform: none;
+  }
+
+  .tab-btn.active {
+    background: var(--yellow);
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+
+  .tab-btn .counter {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    font-size: 0.58rem;
+    padding: 1px 4px;
+    background: var(--pink);
+    color: #ffffff;
+    border: 1.5px solid var(--ink);
+    border-radius: 99px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Fixed Mobile Bottom Navigation Bar: Thumb-accessible everywhere */
+  .mobile-bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border-top: 3.5px solid var(--ink);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 6px));
+    gap: 5px;
+    z-index: 990;
+    box-shadow: 0 -4px 16px rgba(18, 18, 18, 0.12);
+  }
+
+  .mob-nav-btn {
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 6px 2px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.12s ease;
+  }
+
+  .mob-nav-btn:active {
+    transform: scale(0.96);
+  }
+
+  .mob-nav-btn.active {
+    background: var(--yellow);
+    border: 2px solid var(--ink);
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  .mob-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+    position: relative;
+    display: inline-block;
+  }
+
+  .mob-counter {
+    position: absolute;
+    top: -5px;
+    right: -10px;
+    font-size: 0.58rem;
+    padding: 1px 4px;
+    background: var(--pink);
+    color: #ffffff;
+    border: 1.5px solid var(--ink);
+    border-radius: 99px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .mob-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.2px;
+  }
+
+  /* Mobile-Only Segmented Calculator Switcher */
+  .calc-mobile-switcher {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .calc-view-btn {
+    background: #ffffff;
+    border: var(--border-sm);
+    box-shadow: 2.5px 2.5px 0 var(--ink);
+    border-radius: 8px;
+    padding: 9px 6px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--ink);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.12s ease;
+  }
+
+  .calc-view-btn.active {
+    background: var(--yellow);
+    box-shadow: 1px 1px 0 var(--ink);
+    transform: translate(1px, 1px);
+  }
+
+  .calc-view-btn .mini-tag {
+    font-size: 0.64rem;
+    padding: 1px 5px;
+    border-radius: 99px;
+    background: #ffffff;
+    border: 1px solid var(--ink);
+  }
+
+  .calc-view-btn.active .mini-tag {
+    background: #ffffff;
+  }
+
+  /* View switcher toggles between form and verdict on phones */
+  .grid-2col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .grid-2col .card.mob-view-hidden {
+    display: none !important;
+  }
+
+  .mobile-only-btn {
+    display: block !important;
+    width: 100%;
+    margin-top: 10px;
+    text-align: center;
+    font-size: 0.84rem;
+    font-weight: 800;
+    padding: 10px 14px;
+    border: var(--border-sm);
+    box-shadow: 2.5px 2.5px 0 var(--ink);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  /* Real-time mini verdict strip right inside Form Card */
+  .mobile-live-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: #fffcee;
+    border: var(--border-sm);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  .mobile-live-banner.state-safe {
+    background: var(--green-lt);
+    border-color: var(--ink);
+  }
+
+  .mobile-live-banner.state-danger {
+    background: var(--pink-lt);
+    border-color: var(--ink);
+  }
+
+  .mobile-live-banner .live-icon {
+    font-size: 1.4rem;
+    line-height: 1;
     flex-shrink: 0;
+  }
+
+  .mobile-live-banner .live-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .mobile-live-banner .live-text strong {
+    font-size: 0.8rem;
+    font-family: 'Syne', sans-serif;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-live-banner .live-text span {
+    font-size: 0.68rem;
+    font-family: 'Space Mono', monospace;
+    color: #444;
+  }
+
+  .mobile-live-banner .btn {
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    flex-shrink: 0;
+  }
+
+  /* Today's Schedule Card Header & Collapsing */
+  .today-box-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .today-title-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .today-actions-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .today-toggle-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+  }
+
+  #today-box.is-collapsed {
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+
+  #today-box.is-collapsed .today-grid,
+  #today-box.is-collapsed .today-desc {
+    display: none !important;
+  }
+
+  #today-box.is-collapsed .card-header {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  /* Timetable Mobile Day Filter */
+  .timetable-mobile-filter {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 2px 2px 8px;
+    margin-bottom: 12px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .timetable-mobile-filter::-webkit-scrollbar {
+    display: none;
+  }
+
+  .day-filter-pill {
+    flex-shrink: 0;
+    background: #ffffff;
+    border: var(--border-sm);
+    box-shadow: 2px 2px 0 var(--ink);
+    border-radius: 99px;
+    padding: 4px 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.1s;
+    color: var(--ink);
+  }
+
+  .day-filter-pill.active {
+    background: var(--yellow);
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+
+  .day-card.day-filtered-out {
+    display: none !important;
   }
 
   /* Cards & Headers */
   .card {
-    padding: 14px;
+    padding: 12px 14px;
     border-radius: 10px;
-    box-shadow: 4px 4px 0 var(--ink);
+    box-shadow: 3.5px 3.5px 0 var(--ink);
   }
 
   .card-header {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     padding-bottom: 8px;
-    gap: 8px;
+    gap: 6px;
   }
 
   .card-header h2 {
-    font-size: 1.1rem;
-  }
-
-  /* 1-column layout for form and verdict on phones */
-  .grid-2col {
-    grid-template-columns: 1fr;
-    gap: 14px;
+    font-size: 1.05rem;
   }
 
   /* Today's slots list */
@@ -992,9 +1326,14 @@ dialog::backdrop {
     padding: 10px;
   }
 
+  .slot-empty {
+    padding: 10px 12px;
+    font-size: 0.8rem;
+  }
+
   /* Forms & Steppers */
   .form-group {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .form-row {
@@ -1002,53 +1341,58 @@ dialog::backdrop {
   }
 
   .stepper button {
-    width: 36px;
-    font-size: 1.1rem;
+    width: 42px;
+    height: 38px;
+    font-size: 1.25rem;
   }
 
   .stepper input {
-    font-size: 1rem;
+    font-size: 1.05rem;
     padding: 4px !important;
   }
 
   /* Pills & Target */
   .pills {
+    display: flex;
     gap: 4px;
     margin: 4px 0 6px;
+    width: 100%;
   }
 
   .pill {
-    font-size: 0.72rem;
-    padding: 2px 6px;
+    flex: 1;
+    font-size: 0.7rem;
+    padding: 3px 2px;
+    text-align: center;
   }
 
   /* Verdict card adjustments */
   .verdict-banner {
-    padding: 10px;
+    padding: 10px 12px;
     gap: 10px;
   }
 
   .verdict-icon {
-    font-size: 1.8rem;
+    font-size: 1.7rem;
   }
 
   .verdict-title {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
   }
 
   .verdict-desc {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
   }
 
   .gauge-box {
     padding: 8px 10px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .stats-row {
     grid-template-columns: repeat(2, 1fr);
     gap: 6px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .stat-box {
@@ -1056,13 +1400,13 @@ dialog::backdrop {
   }
 
   .stat-box strong {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 
   /* Timetable & Subjects Grid: 1 column */
   .days-grid, .subjects-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 
   .day-card, .subject-card {
@@ -1070,8 +1414,8 @@ dialog::backdrop {
   }
 
   .btn {
-    font-size: 0.8rem;
-    padding: 8px 10px;
+    font-size: 0.78rem;
+    padding: 7px 10px;
   }
 
   /* Dialogs / Modals */
@@ -1088,7 +1432,7 @@ dialog::backdrop {
   .toast-container {
     left: 12px;
     right: 12px;
-    bottom: 12px;
+    bottom: 74px; /* Above mobile bottom nav */
   }
 
   .toast {
@@ -1100,8 +1444,9 @@ dialog::backdrop {
   .footer {
     flex-direction: column;
     text-align: center;
-    gap: 12px;
-    margin-top: 20px;
+    gap: 10px;
+    margin-top: 16px;
+    margin-bottom: 10px;
   }
 
   .footer .btn {

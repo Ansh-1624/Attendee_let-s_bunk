@@ -33,11 +33,29 @@
       </div>
     </header>
 
-    <nav class="tabs">
-      <button class="tab-btn active" data-tab="calculator">⚡ Quick Calculator</button>
-      <button class="tab-btn" data-tab="timetable">📅 Timetable <span class="counter" id="today-class-count">0</span></button>
-      <button class="tab-btn" data-tab="multi">📚 Subjects <span class="counter" id="subject-count">0</span></button>
-      <button class="tab-btn" data-tab="simulator">🔮 Simulator</button>
+    <nav class="tabs" role="tablist" aria-label="Main application tabs">
+      <button class="tab-btn active" role="tab" aria-selected="true" data-tab="calculator">
+        <span class="tab-icon">⚡</span>
+        <span class="tab-label-full">Quick Calculator</span>
+        <span class="tab-label-short">Calc</span>
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="timetable">
+        <span class="tab-icon">📅</span>
+        <span class="tab-label-full">Timetable</span>
+        <span class="tab-label-short">Routine</span>
+        <span class="counter" id="today-class-count">0</span>
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="multi">
+        <span class="tab-icon">📚</span>
+        <span class="tab-label-full">Subjects</span>
+        <span class="tab-label-short">Subjects</span>
+        <span class="counter" id="subject-count">0</span>
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-tab="simulator">
+        <span class="tab-icon">🔮</span>
+        <span class="tab-label-full">Simulator</span>
+        <span class="tab-label-short">Sim</span>
+      </button>
     </nav>
 
     <main>
@@ -45,22 +63,47 @@
       <section class="tab-pane active" id="pane-calculator">
         <!-- TODAY'S SCHEDULE -->
         <div class="card mb-4" id="today-box">
-          <div class="card-header">
-            <div>
+          <div class="card-header today-box-header">
+            <div class="today-title-wrap">
               <h2 id="today-card-title">📅 Today's Classes</h2>
-              <p class="desc">Mark attendance to sync automatically with your running semester standing.</p>
+              <p class="desc today-desc">Mark attendance to sync automatically with your running semester standing.</p>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <div class="today-actions-wrap">
               <button type="button" class="btn btn-sm btn-yellow" id="btn-mark-all-today">⚡ Mark All Present</button>
               <button type="button" class="btn btn-sm btn-muted" id="btn-mark-all-cancelled">🌴 Day Off (Cancel All)</button>
+              <button type="button" class="btn btn-sm btn-ghost today-toggle-btn" id="btn-toggle-today" title="Collapse / Expand Today's Schedule">
+                <span id="today-toggle-icon">▲</span>
+                <span class="today-toggle-text">Collapse</span>
+              </button>
             </div>
           </div>
           <div class="today-grid" id="today-slots-container"></div>
         </div>
 
-        <div class="grid-2col">
+        <!-- MOBILE-ONLY CALCULATOR VIEW SWITCHER -->
+        <div class="calc-mobile-switcher" id="calc-mobile-switcher" role="tablist" aria-label="Calculator views">
+          <button type="button" class="calc-view-btn active" data-view="form" id="view-btn-form" role="tab" aria-selected="true">
+            <span>✏️ Class Details</span>
+          </button>
+          <button type="button" class="calc-view-btn" data-view="verdict" id="view-btn-verdict" role="tab" aria-selected="false">
+            <span>🎯 The Verdict</span>
+            <span class="mini-tag" id="mobile-verdict-pill">0.0%</span>
+          </button>
+        </div>
+
+        <div class="grid-2col" id="calc-grid">
           <!-- FORM -->
-          <div class="card">
+          <div class="card" id="calc-form-card">
+            <!-- Mobile-only real-time live verdict bar -->
+            <div class="mobile-live-banner" id="mobile-live-banner">
+              <span class="live-icon" id="mob-live-icon">🚀</span>
+              <div class="live-text">
+                <strong id="mob-live-title">No classes held yet</strong>
+                <span id="mob-live-desc">0.0% Standing &bull; Target: 75%</span>
+              </div>
+              <button type="button" class="btn btn-xs btn-yellow" id="btn-mob-quick-verdict">Breakdown ➔</button>
+            </div>
+
             <div class="card-header">
               <h2>Class Details</h2>
               <span class="step-badge">STEP 1</span>
@@ -129,11 +172,21 @@
                 <button type="button" class="btn btn-secondary" id="btn-save-subject">💾 Save to Subjects</button>
                 <button type="button" class="btn btn-ghost" id="btn-reset">↺ Reset</button>
               </div>
+
+              <!-- Mobile Jump to Verdict button -->
+              <button type="button" class="btn btn-yellow btn-block mt-3 mobile-only-btn" id="btn-goto-verdict">
+                🎯 View Full Verdict &amp; Standing ➔
+              </button>
             </form>
           </div>
 
           <!-- VERDICT HERO CARD -->
           <div class="card verdict-card" id="result-card">
+            <!-- Mobile Jump back to Form button -->
+            <button type="button" class="btn btn-ghost btn-block mb-3 mobile-only-btn" id="btn-goto-form">
+              ✏️ &larr; Back to Edit Class Numbers
+            </button>
+
             <div class="card-header">
               <h2>The Verdict</h2>
               <span class="status-tag" id="verdict-tag">NO CLASSES</span>
@@ -195,6 +248,17 @@
 
       <!-- TAB 2: WEEKLY TIMETABLE -->
       <section class="tab-pane" id="pane-timetable">
+        <div class="timetable-mobile-filter" id="timetable-day-filter">
+          <button type="button" class="day-filter-pill active" data-day="all">All Days</button>
+          <button type="button" class="day-filter-pill" data-day="today">Today</button>
+          <button type="button" class="day-filter-pill" data-day="monday">Mon</button>
+          <button type="button" class="day-filter-pill" data-day="tuesday">Tue</button>
+          <button type="button" class="day-filter-pill" data-day="wednesday">Wed</button>
+          <button type="button" class="day-filter-pill" data-day="thursday">Thu</button>
+          <button type="button" class="day-filter-pill" data-day="friday">Fri</button>
+          <button type="button" class="day-filter-pill" data-day="saturday">Sat</button>
+          <button type="button" class="day-filter-pill" data-day="sunday">Sun</button>
+        </div>
         <div class="days-grid" id="timetable-container"></div>
       </section>
 
@@ -352,6 +416,26 @@
       </form>
     </div>
   </dialog>
+
+  <!-- MOBILE FIXED BOTTOM NAVIGATION -->
+  <nav class="mobile-bottom-nav" aria-label="Mobile Navigation">
+    <button type="button" class="mob-nav-btn active" data-tab="calculator" aria-label="Quick Calculator">
+      <span class="mob-icon">⚡</span>
+      <span class="mob-text">Calc</span>
+    </button>
+    <button type="button" class="mob-nav-btn" data-tab="timetable" aria-label="Timetable Routine">
+      <span class="mob-icon">📅<span class="counter mob-counter" id="mob-today-count">0</span></span>
+      <span class="mob-text">Routine</span>
+    </button>
+    <button type="button" class="mob-nav-btn" data-tab="multi" aria-label="Subjects">
+      <span class="mob-icon">📚<span class="counter mob-counter" id="mob-subject-count">0</span></span>
+      <span class="mob-text">Subjects</span>
+    </button>
+    <button type="button" class="mob-nav-btn" data-tab="simulator" aria-label="Simulator">
+      <span class="mob-icon">🔮</span>
+      <span class="mob-text">Sim</span>
+    </button>
+  </nav>
 
   <div id="toasts" class="toast-container"></div>
   <canvas id="confetti" class="confetti-canvas"></canvas>

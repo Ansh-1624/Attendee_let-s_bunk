@@ -83,6 +83,45 @@ function updateUI() {
     $('verdict-text').textContent = `Must attend next ${res.recover} consecutive class(es) to bounce back to ${res.target}%.`;
   }
 
+  // Update mobile-optimized badges & real-time live banner
+  const mobPill = $('mobile-verdict-pill');
+  const mobBanner = $('mobile-live-banner');
+  const mobIcon = $('mob-live-icon');
+  const mobTitle = $('mob-live-title');
+  const mobDesc = $('mob-live-desc');
+
+  if (mobPill) {
+    if (!res.held) {
+      mobPill.textContent = '0.0%';
+      mobPill.className = 'mini-tag tag-yellow';
+    } else if (res.isSafe) {
+      mobPill.textContent = `${res.pctFmt}% ${res.skippable ? `(+${res.skippable})` : 'Safe'}`;
+      mobPill.className = 'mini-tag tag-green';
+    } else {
+      mobPill.textContent = `${res.pctFmt}% (Need ${res.recover})`;
+      mobPill.className = 'mini-tag tag-pink';
+    }
+  }
+
+  if (mobBanner && mobIcon && mobTitle && mobDesc) {
+    if (!res.held) {
+      mobBanner.className = 'mobile-live-banner';
+      mobIcon.textContent = '🚀';
+      mobTitle.textContent = subName ? `No classes in ${subName}` : 'No classes held yet';
+      mobDesc.textContent = `0.0% Standing • Target: ${res.target}%`;
+    } else if (res.isSafe) {
+      mobBanner.className = 'mobile-live-banner state-safe';
+      mobIcon.textContent = res.skippable ? '😎' : '⚠️';
+      mobTitle.textContent = res.skippable ? `Safe to bunk ${res.skippable} class${res.skippable > 1 ? 'es' : ''}` : 'On the edge (0 skips)';
+      mobDesc.textContent = `${res.pctFmt}% • Safe by +${res.diff}% • Target: ${res.target}%`;
+    } else {
+      mobBanner.className = 'mobile-live-banner state-danger';
+      mobIcon.textContent = '🚨';
+      mobTitle.textContent = `Must attend next ${res.recover} class${res.recover > 1 ? 'es' : ''}`;
+      mobDesc.textContent = `${res.pctFmt}% • Deficit by -${res.diff}% • Target: ${res.target}%`;
+    }
+  }
+
   store('attandie_state', { subject: $('subject-name').value, attended: $('attended').value, held: $('total').value, target: $('target-slider').value });
 }
 
@@ -169,6 +208,18 @@ function getOrAddSubject(name) {
   return sub;
 }
 
+let todayBoxCollapsed = false;
+function toggleTodayBox(force) {
+  const box = $('today-box');
+  const icon = $('today-toggle-icon');
+  const text = document.querySelector('.today-toggle-text');
+  if (!box) return;
+  todayBoxCollapsed = force !== undefined ? force : !todayBoxCollapsed;
+  box.classList.toggle('is-collapsed', todayBoxCollapsed);
+  if (icon) icon.textContent = todayBoxCollapsed ? '▼' : '▲';
+  if (text) text.textContent = todayBoxCollapsed ? 'Expand' : 'Collapse';
+}
+
 // Today's Schedule
 function renderTodaySchedule() {
   const today = getToday();
@@ -178,10 +229,15 @@ function renderTodaySchedule() {
 
   const slots = timetable.filter(t => t.day.toLowerCase() === today.toLowerCase());
   $('today-class-count').textContent = slots.length;
+  if ($('mob-today-count')) $('mob-today-count').textContent = slots.length;
 
   const container = $('today-slots-container');
   if (!slots.length) {
     container.innerHTML = `<div class="slot-empty" style="grid-column: 1 / -1;">🎉 No classes scheduled for today (${today})!</div>`;
+    // If on mobile and no classes scheduled, collapse today-box by default to eliminate dead vertical scroll
+    if (window.innerWidth <= 640 && !sessionStorage.getItem('attandie_today_user_toggled')) {
+      toggleTodayBox(true);
+    }
     return;
   }
 
@@ -280,6 +336,23 @@ window.logTodayClass = (slotId, action) => {
   }
 };
 
+let currentDayFilter = 'all';
+
+function applyTimetableFilter() {
+  const cards = $$('.day-card');
+  const today = getToday().toLowerCase();
+  cards.forEach(card => {
+    const cardDay = card.dataset.day || '';
+    if (currentDayFilter === 'all') {
+      card.classList.remove('day-filtered-out');
+    } else if (currentDayFilter === 'today') {
+      card.classList.toggle('day-filtered-out', cardDay !== today);
+    } else {
+      card.classList.toggle('day-filtered-out', cardDay !== currentDayFilter);
+    }
+  });
+}
+
 // Weekly Timetable
 function renderTimetable() {
   const container = $('timetable-container');
@@ -303,7 +376,7 @@ function renderTimetable() {
     `).join('') : '<div class="slot-empty">No classes scheduled</div>';
 
     return `
-      <div class="day-card ${isToday ? 'is-today' : ''}">
+      <div class="day-card ${isToday ? 'is-today' : ''}" data-day="${day.toLowerCase()}">
         <div class="day-header">
           <h3>${day} ${isToday ? '<span class="tag tag-yellow" style="font-size:0.65rem">TODAY</span>' : ''}</h3>
           <button type="button" class="btn btn-sm btn-ghost" onclick="openAddSlotModal('${day}')">+ Add</button>
@@ -312,6 +385,8 @@ function renderTimetable() {
       </div>
     `;
   }).join('');
+
+  applyTimetableFilter();
 }
 
 window.openAddSlotModal = day => {
@@ -349,6 +424,7 @@ function renderSubjects() {
   const container = $('subjects-container');
   const empty = $('empty-state');
   $('subject-count').textContent = subjects.length;
+  if ($('mob-subject-count')) $('mob-subject-count').textContent = subjects.length;
 
   if (!subjects.length) {
     container.innerHTML = '';
@@ -468,7 +544,8 @@ window.loadIntoCalc = id => {
   curSyncedId = s.id;
   updateUI();
   updateSyncBadge(`⚡ Synced: ${s.name} (${s.attended}/${s.held})`, 'tag-green');
-  document.querySelector('[data-tab="calculator"]').click();
+  switchTab('calculator', true);
+  setCalcMobileView('form');
   showToast(`⚡ Loaded ${s.name}`);
 };
 
@@ -533,15 +610,103 @@ function updateLiveClock() {
   $('live-time-badge').textContent = `🕒 ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}`;
 }
 
+function switchTab(tabId, scrollUp = false) {
+  $$('.tab-btn, .mob-nav-btn, .tab-pane').forEach(el => el.classList.remove('active'));
+  $$(`.tab-btn[data-tab="${tabId}"], .mob-nav-btn[data-tab="${tabId}"]`).forEach(btn => {
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+  });
+  $$(`.tab-btn:not([data-tab="${tabId}"]), .mob-nav-btn:not([data-tab="${tabId}"])`).forEach(btn => {
+    btn.setAttribute('aria-selected', 'false');
+  });
+  $(`pane-${tabId}`)?.classList.add('active');
+  if (tabId === 'simulator') renderSimulator();
+  if (tabId === 'timetable') renderTimetable();
+  if (scrollUp) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function setCalcMobileView(view) {
+  $$('.calc-view-btn').forEach(btn => {
+    const isActive = btn.dataset.view === view;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', String(isActive));
+  });
+  const formCard = $('calc-form-card');
+  const verdictCard = $('result-card');
+  if (formCard && verdictCard) {
+    if (window.innerWidth <= 640) {
+      formCard.classList.toggle('mob-view-hidden', view === 'verdict');
+      verdictCard.classList.toggle('mob-view-hidden', view === 'form');
+    } else {
+      formCard.classList.remove('mob-view-hidden');
+      verdictCard.classList.remove('mob-view-hidden');
+    }
+  }
+}
+
 // Initialization
 function init() {
-  $$('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
-    $$('.tab-btn, .tab-pane').forEach(el => el.classList.remove('active'));
-    btn.classList.add('active');
-    $(`pane-${btn.dataset.tab}`)?.classList.add('active');
-    if (btn.dataset.tab === 'simulator') renderSimulator();
-    if (btn.dataset.tab === 'timetable') renderTimetable();
-  }));
+  // Sync Top Tabs and Fixed Mobile Bottom Navigation
+  $$('.tab-btn, .mob-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const isMob = btn.classList.contains('mob-nav-btn');
+      switchTab(btn.dataset.tab, isMob);
+    });
+  });
+
+  // Mobile Calculator View Switcher (Class Details vs The Verdict)
+  $$('.calc-view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setCalcMobileView(btn.dataset.view);
+    });
+  });
+
+  // Mobile quick jumping buttons between form and verdict
+  $('btn-goto-verdict')?.addEventListener('click', () => {
+    setCalcMobileView('verdict');
+    $('result-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  $('btn-goto-form')?.addEventListener('click', () => {
+    setCalcMobileView('form');
+    $('calc-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  $('btn-mob-quick-verdict')?.addEventListener('click', () => {
+    setCalcMobileView('verdict');
+    $('result-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // Today's schedule collapse toggle
+  $('btn-toggle-today')?.addEventListener('click', () => {
+    sessionStorage.setItem('attandie_today_user_toggled', 'true');
+    toggleTodayBox();
+  });
+
+  // Timetable mobile day filter
+  $$('.day-filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      $$('.day-filter-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      currentDayFilter = pill.dataset.day;
+      applyTimetableFilter();
+    });
+  });
+
+  // Window resize handler: keeps laptop presence 100% intact
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 640) {
+      $('calc-form-card')?.classList.remove('mob-view-hidden');
+      $('result-card')?.classList.remove('mob-view-hidden');
+      $$('.day-card').forEach(c => c.classList.remove('day-filtered-out'));
+    } else {
+      const activeView = document.querySelector('.calc-view-btn.active')?.dataset.view || 'form';
+      setCalcMobileView(activeView);
+      applyTimetableFilter();
+    }
+  });
 
   const adjustInputs = (dAtt = 0, dHeld = 0) => {
     if (dAtt || dHeld) {
@@ -723,6 +888,10 @@ function init() {
     syncSubjectFromName(true);
   } else {
     updateUI();
+  }
+
+  if (window.innerWidth <= 640) {
+    setCalcMobileView('form');
   }
 }
 
