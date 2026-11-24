@@ -547,8 +547,8 @@ function renderSimulator() {
       <tr>
         <td><strong>+${step} class${step > 1 ? 'es' : ''}</strong></td>
         <td class="${att.isSafe ? 'cell-safe' : 'cell-danger'}">${att.pctFmt}% (${a + step}/${h + step})</td>
-        <td class="${bnk.isSafe ? 'cell-danger' : 'cell-danger'}">${bnk.pctFmt}% (${a}/${h + step})</td>
-        <td><span class="mini-tag ${bnk.isSafe ? '' : 'tag-pink'}">${bnk.isSafe ? 'Safe to skip' : 'Need to attend'}</span></td>
+        <td class="${bnk.isSafe ? 'cell-safe' : 'cell-danger'}">${bnk.pctFmt}% (${a}/${h + step})</td>
+        <td><span class="sim-status-badge ${bnk.isSafe ? 'sim-status-safe' : 'sim-status-danger'}">${bnk.isSafe ? '🌴 Can Skip' : '🚨 Must Attend'}</span></td>
       </tr>
     `;
   }).join('');

@@ -349,13 +349,18 @@ input[type="text"], input[type="number"], .neo-input {
 }
 
 .mini-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
   font-family: 'Space Mono', monospace;
   font-size: 0.7rem;
   font-weight: 700;
   background: var(--green-lt);
   border: 1.5px solid var(--ink);
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: 99px;
+  line-height: 1.2;
 }
 
 /* STEPPER */
@@ -786,7 +791,10 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* SIMULATOR TABLE */
-.table-wrap { overflow-x: auto; }
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 
 .neo-table {
   width: 100%;
@@ -795,20 +803,28 @@ input[type="range"]::-webkit-slider-thumb {
   border: var(--border);
   border-radius: 8px;
   overflow: hidden;
+  background: #fff;
 }
 
 .neo-table th, .neo-table td {
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--ink);
   border-right: 1px solid var(--ink);
   font-family: 'Space Mono', monospace;
   font-size: 0.8rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.neo-table th:first-child, .neo-table td:first-child {
+  text-align: left;
 }
 
 .neo-table th {
   background: var(--yellow);
   font-family: 'Syne', sans-serif;
   font-weight: 900;
+  font-size: 0.82rem;
 }
 
 .neo-table th:last-child, .neo-table td:last-child { border-right: none; }
@@ -816,6 +832,32 @@ input[type="range"]::-webkit-slider-thumb {
 
 .cell-safe { color: #059669; font-weight: 700; }
 .cell-danger { color: #dc2626; font-weight: 700; }
+
+.sim-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 99px;
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+  line-height: 1.2;
+}
+
+.sim-status-safe {
+  background: var(--green-lt);
+  color: #065f46;
+}
+
+.sim-status-danger {
+  background: var(--pink-lt);
+  color: #9f1239;
+}
 
 /* DIALOGS */
 dialog {
@@ -1384,6 +1426,28 @@ dialog::backdrop {
 
   .day-card, .subject-card {
     padding: 12px;
+  }
+
+  /* Simulator table mobile adjustments */
+  .table-wrap {
+    margin: 0 -2px;
+    padding-bottom: 2px;
+  }
+
+  .neo-table th, .neo-table td {
+    padding: 6px 4px;
+    font-size: 0.68rem;
+  }
+
+  .neo-table th {
+    font-size: 0.7rem;
+    padding: 7px 4px;
+  }
+
+  .sim-status-badge {
+    font-size: 0.62rem;
+    padding: 2px 5px;
+    box-shadow: 1px 1px 0 var(--ink);
   }
 
   .btn {
