@@ -176,7 +176,6 @@ body {
 .mobile-live-banner { display: none; }
 .mobile-only-btn { display: none; }
 .timetable-mobile-filter { display: none; }
-.today-toggle-btn { display: none; }
 
 /* CARDS & GRIDS */
 .card {
@@ -1231,32 +1230,6 @@ dialog::backdrop {
     gap: 6px;
     flex-wrap: wrap;
     justify-content: flex-end;
-  }
-
-  .today-toggle-btn {
-    display: inline-flex !important;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    font-size: 0.72rem;
-    font-family: 'Space Mono', monospace;
-    font-weight: 700;
-  }
-
-  #today-box.is-collapsed {
-    padding: 10px 12px;
-    margin-bottom: 12px;
-  }
-
-  #today-box.is-collapsed .today-grid,
-  #today-box.is-collapsed .today-desc {
-    display: none !important;
-  }
-
-  #today-box.is-collapsed .card-header {
-    margin-bottom: 0;
-    padding-bottom: 0;
-    border-bottom: none;
   }
 
   /* Timetable Mobile Day Filter */

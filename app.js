@@ -208,18 +208,6 @@ function getOrAddSubject(name) {
   return sub;
 }
 
-let todayBoxCollapsed = false;
-function toggleTodayBox(force) {
-  const box = $('today-box');
-  const icon = $('today-toggle-icon');
-  const text = document.querySelector('.today-toggle-text');
-  if (!box) return;
-  todayBoxCollapsed = force !== undefined ? force : !todayBoxCollapsed;
-  box.classList.toggle('is-collapsed', todayBoxCollapsed);
-  if (icon) icon.textContent = todayBoxCollapsed ? '▼' : '▲';
-  if (text) text.textContent = todayBoxCollapsed ? 'Expand' : 'Collapse';
-}
-
 // Today's Schedule
 function renderTodaySchedule() {
   const today = getToday();
@@ -234,10 +222,6 @@ function renderTodaySchedule() {
   const container = $('today-slots-container');
   if (!slots.length) {
     container.innerHTML = `<div class="slot-empty" style="grid-column: 1 / -1;">🎉 No classes scheduled for today (${today})!</div>`;
-    // If on mobile and no classes scheduled, collapse today-box by default to eliminate dead vertical scroll
-    if (window.innerWidth <= 640 && !sessionStorage.getItem('attandie_today_user_toggled')) {
-      toggleTodayBox(true);
-    }
     return;
   }
 
@@ -677,12 +661,6 @@ function init() {
   $('btn-mob-quick-verdict')?.addEventListener('click', () => {
     setCalcMobileView('verdict');
     $('result-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-
-  // Today's schedule collapse toggle
-  $('btn-toggle-today')?.addEventListener('click', () => {
-    sessionStorage.setItem('attandie_today_user_toggled', 'true');
-    toggleTodayBox();
   });
 
   // Timetable mobile day filter
